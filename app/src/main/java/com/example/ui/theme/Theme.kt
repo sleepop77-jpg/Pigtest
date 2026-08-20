@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.example.core.TimeBasedThemeManager
 
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryCoralLight,
@@ -48,6 +49,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun StudyOSTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    timeManager: TimeBasedThemeManager? = null,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
@@ -58,4 +60,3 @@ fun StudyOSTheme(
         content = content
     )
 }
-
