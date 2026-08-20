@@ -81,9 +81,16 @@ fun LauncherScreen(
     val currentPhase = themeManager.getCurrentPhase()
     val isNightMode = themeManager.isDarkThemeActive()
 
-    val backgroundBrush = remember(currentPhase, isNightMode) {
-        when {
-            isNightMode -> Brush.verticalGradient(
+    val equippedTheme by com.example.core.EquipManager.equippedTheme.collectAsState(initial = null)
+val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
+    when {
+        equippedTheme == "item_math_matrix" -> Brush.verticalGradient(
+            listOf(Color(0xFF003000), Color(0xFF001500))
+        )
+        equippedTheme == "item_spanish_fiesta" -> Brush.verticalGradient(
+            listOf(Color(0xFFF5A623), Color(0xFFD9534F), Color(0xFF9C27B0))
+        )
+        isNightMode -> Brush.verticalGradient(
                 listOf(Color(0xFF4A2C2C), Color(0xFF241515))
             )
             currentPhase == TimeOfDayPhase.MORNING_SUNRISE -> Brush.verticalGradient(
