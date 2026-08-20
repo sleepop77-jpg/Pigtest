@@ -149,7 +149,7 @@ fun StudyOSApp(
             LauncherScreen(
                 repository = repository,
                 economyManager = economyManager,
-                timerManager = timerManager,
+                timeManager = timerManager,
                 themeManager = themeManager,
                 onNavigateToRoute = { route -> navController.navigate(route) }
             )
