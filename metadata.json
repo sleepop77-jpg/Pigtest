@@ -1,0 +1,6 @@
+{
+  "name": "StudyOS",
+  "description": "Gamified Productivity OS with Pomodoro, Fame/Shame economy, Subject Mastery, Study Stocks, and widgets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

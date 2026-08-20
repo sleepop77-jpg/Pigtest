@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Arc Ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M 34,68 A 26,26 0 1,1 74,68" />
+    
+    <!-- Study Buddy Mascot Head -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 54,34 C 44,34 38,42 38,52 C 38,62 45,67 54,67 C 63,67 70,62 70,52 C 70,42 64,34 54,34 Z" />
+    <!-- Leaf / Stem on top -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M 54,34 C 54,30 57,27 60,26 C 58,29 57,32 54,34 Z" />
+    <!-- Eyes -->
+    <path
+        android:fillColor="#D9534F"
+        android:pathData="M 48,51 A 2,2 0 1,1 48,47 A 2,2 0 1,1 48,51 Z M 60,51 A 2,2 0 1,1 60,47 A 2,2 0 1,1 60,51 Z" />
+    <!-- Smile -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#D9534F"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M 51,55 Q 54,58 57,55" />
+    <!-- Laptop Base -->
+    <path
+        android:fillColor="#F5E6E5"
+        android:pathData="M 42,70 L 66,70 L 68,75 L 40,75 Z" />
+    <!-- Laptop Screen -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 44,60 L 64,60 L 64,70 L 44,70 Z" />
+</vector>

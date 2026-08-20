@@ -1,0 +1,172 @@
+package com.example.core
+
+import com.example.data.repository.StudyRepository
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import java.util.Calendar
+
+data class SarcasticNotification(
+    val id: String,
+    val title: String,
+    val message: String,
+    val urgencyLevel: String // "Gentle", "Normal", "Savage"
+)
+
+enum class MascotState {
+    IDLE,
+    STUDYING,
+    WINNING,
+    HIGH_SHAME,
+    NIGHT_OWL,
+    STREAK,
+    SINGING,
+    FRUSTRATED,
+    BURNING
+}
+
+class EconomyManager(
+    private val repository: StudyRepository,
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+) {
+    val totalFame: StateFlow<Int> = repository.totalFame
+        .stateIn(scope, SharingStarted.Eagerly, 100)
+
+    val totalShame: StateFlow<Int> = repository.totalShame
+        .stateIn(scope, SharingStarted.Eagerly, 0)
+
+    val currentStreakDays = MutableStateFlow(4)
+
+    private val _activeNotification = MutableStateFlow<SarcasticNotification?>(null)
+    val activeNotification: StateFlow<SarcasticNotification?> = _activeNotification.asStateFlow()
+
+    private val _isStudyingNow = MutableStateFlow(false)
+    val isStudyingNow: StateFlow<Boolean> = _isStudyingNow.asStateFlow()
+
+    private val _currentActiveSubject = MutableStateFlow("Mathematics")
+    val currentActiveSubject: StateFlow<String> = _currentActiveSubject.asStateFlow()
+
+    private val _continuousStudySeconds = MutableStateFlow(0)
+    val continuousStudySeconds: StateFlow<Int> = _continuousStudySeconds.asStateFlow()
+
+    private var hasAwardedBurnBonus = false
+
+    private val _mascotState = MutableStateFlow(MascotState.IDLE)
+    val mascotState: StateFlow<MascotState> = _mascotState.asStateFlow()
+
+    // Sarcastic message pools (No emojis, rich pure text humor!)
+    private val idleSavageMessages = listOf(
+        "Your textbooks called. They filed a missing persons report on you.",
+        "An entire hour evaporated. Just like your GPA if you continue this behavior.",
+        "Your procrastination is legendary. Unfortunately, employers do not hire for that.",
+        "At this rate, your Shame score will qualify for a Guinness World Record.",
+        "Breaking news: Looking at your phone does not automatically absorb calculus formulas.",
+        "Your competitor is currently on their third 50-minute exam prep round. Just saying."
+    )
+
+    private val idleNormalMessages = listOf(
+        "StudyOS Reminder: 30 minutes of idle time recorded. Start a 25m Focus Timer to earn +50 Fame!",
+        "Your daily study streak of 4 days is waiting for today's session.",
+        "Fame cancels Shame! Jump into a quick review to protect your leaderboard standing."
+    )
+
+    private val idleGentleMessages = listOf(
+        "Ready to continue your journey? A quick 15-minute session will keep your momentum strong.",
+        "Take a breath, grab some water, and let's conquer one flashcard deck today."
+    )
+
+    init {
+        // Continuous study tracker ticker & Overdrive Burn detection (3 hours without stopping)
+        scope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(1000L)
+                if (_isStudyingNow.value) {
+                    val currentSecs = _continuousStudySeconds.value + 1
+                    _continuousStudySeconds.value = currentSecs
+
+                    // 3 Hours continuous study = 10,800 seconds (180 minutes)
+                    if (currentSecs >= 10800 && !hasAwardedBurnBonus) {
+                        hasAwardedBurnBonus = true
+                        repository.addFame(100, "🔥 3-Hour Unstoppable Burning Overdrive (+100 Bonus Fame)!")
+                    }
+                }
+            }
+        }
+
+        // Evaluate mascot state reactively
+        scope.launch {
+            combine(totalFame, totalShame, _isStudyingNow, currentStreakDays, _continuousStudySeconds) { fame, shame, studying, streak, continuousSecs ->
+                val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                when {
+                    studying && continuousSecs >= 10800 -> MascotState.BURNING
+                    studying -> MascotState.STUDYING
+                    streak >= 7 -> MascotState.STREAK
+                    shame > fame && shame > 50 -> MascotState.HIGH_SHAME
+                    fame >= 300 -> MascotState.WINNING
+                    hour >= 22 || hour < 5 -> MascotState.NIGHT_OWL
+                    else -> MascotState.IDLE
+                }
+            }.collect { newState ->
+                _mascotState.value = newState
+            }
+        }
+
+        // Periodic background economy ticker simulation
+        scope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(60_000L) // every 1 minute
+                val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                // Shame ONLY accumulates if you are not studying between 5:00 AM and 10:00 PM (05:00 - 22:00)
+                val isShameEligibleHours = hour in 5 until 22
+
+                if (_isStudyingNow.value) {
+                    // +2 Fame per minute studying
+                    repository.addFame(2, "Active Study Tick (+2 Fame)")
+                    // Fame cancels Shame
+                    if (totalShame.value > 0) {
+                        repository.cancelShameWithFame(1)
+                    }
+                } else if (isShameEligibleHours) {
+                    // +1 Shame per minute NOT studying between 5:00 AM and 10:00 PM
+                    repository.addShame(1, "Idle between 5am-10pm (+1 Shame)")
+                }
+            }
+        }
+    }
+
+    fun startStudySession(subject: String) {
+        _currentActiveSubject.value = subject
+        _isStudyingNow.value = true
+    }
+
+    fun stopStudySession() {
+        _isStudyingNow.value = false
+        _continuousStudySeconds.value = 0
+        hasAwardedBurnBonus = false
+    }
+
+    fun setMascotOverrideState(state: MascotState) {
+        _mascotState.value = state
+    }
+
+    fun dismissNotification() {
+        _activeNotification.value = null
+    }
+
+    fun cleanup() {
+        scope.cancel()
+    }
+
+    fun triggerSimulatedNotification(intensity: String) {
+        val msg = when (intensity) {
+            "Savage" -> idleSavageMessages.random()
+            "Gentle" -> idleGentleMessages.random()
+            else -> idleNormalMessages.random()
+        }
+        _activeNotification.value = SarcasticNotification(
+            id = System.currentTimeMillis().toString(),
+            title = "StudyOS AI Monitor [$intensity Mode]",
+            message = msg,
+            urgencyLevel = intensity
+        )
+    }
+}
