@@ -209,6 +209,7 @@ fun MascotComposable(
     progressArc: Float = 1.0f,
     isPetting: Boolean = false
 ) {
+    val equippedSkin by com.example.core.EquipManager.equippedMascot.collectAsState(initial = null)
     val infiniteTransition = rememberInfiniteTransition(label = "mascot_anim")
 
     // Breathing scale
@@ -465,6 +466,7 @@ fun MascotComposable(
                 typingRight = typingStrokeRight,
                 headCenter = headCenter
             )
+            drawEquippedSkin(equippedSkin, cx, cy, w, h, headCenter)
         }
     }
 }
@@ -885,4 +887,47 @@ private fun DrawScope.drawCrown(x: Float, y: Float) {
         close()
     }
     drawPath(crownPath, color = FameGold)
+}
+private fun DrawScope.drawEquippedSkin(
+    skin: String?,
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    headCenter: Offset
+) {
+    when (skin) {
+        "item_cyberpunk" -> {
+            drawRoundRect(
+                color = Color(0xFF00E5FF),
+                topLeft = Offset(headCenter.x - 16.dp.toPx(), headCenter.y - 6.dp.toPx()),
+                size = Size(32.dp.toPx(), 9.dp.toPx()),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx(), 4.dp.toPx())
+            )
+            drawLine(Color(0xFFFF00FF), Offset(headCenter.x - 16.dp.toPx(), headCenter.y - 6.dp.toPx()), Offset(headCenter.x - 21.dp.toPx(), headCenter.y - 13.dp.toPx()), 2.dp.toPx())
+            drawLine(Color(0xFFFF00FF), Offset(headCenter.x + 16.dp.toPx(), headCenter.y - 6.dp.toPx()), Offset(headCenter.x + 21.dp.toPx(), headCenter.y - 13.dp.toPx()), 2.dp.toPx())
+            drawCircle(Color(0xFFFF00FF), 2.5.dp.toPx(), Offset(headCenter.x - 21.dp.toPx(), headCenter.y - 13.dp.toPx()))
+            drawCircle(Color(0xFFFF00FF), 2.5.dp.toPx(), Offset(headCenter.x + 21.dp.toPx(), headCenter.y - 13.dp.toPx()))
+        }
+        "item_night_owl_skin" -> {
+            val cap = Path().apply {
+                moveTo(headCenter.x - 15.dp.toPx(), headCenter.y - 12.dp.toPx())
+                quadraticTo(headCenter.x - 2.dp.toPx(), headCenter.y - 34.dp.toPx(), headCenter.x + 14.dp.toPx(), headCenter.y - 20.dp.toPx())
+                quadraticTo(headCenter.x + 22.dp.toPx(), headCenter.y - 12.dp.toPx(), headCenter.x + 26.dp.toPx(), headCenter.y - 4.dp.toPx())
+                close()
+            }
+            drawPath(cap, Color(0xFF3F51B5))
+            drawCircle(FameGold, 3.5.dp.toPx(), Offset(headCenter.x + 26.dp.toPx(), headCenter.y - 4.dp.toPx()))
+        }
+        "item_golden_desk" -> {
+            drawRoundRect(
+                color = FameGold,
+                topLeft = Offset(cx - (w * 0.38f), cy + (h * 0.20f)),
+                size = Size(w * 0.76f, 3.dp.toPx()),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+            )
+            drawCircle(FameGold, 4.dp.toPx(), Offset(cx - (w * 0.34f), cy + (h * 0.28f)))
+            drawCircle(FameGold, 4.dp.toPx(), Offset(cx + (w * 0.34f), cy + (h * 0.28f)))
+        }
+    }
 }
