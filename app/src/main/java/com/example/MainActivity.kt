@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         NotificationHelper.initChannels(applicationContext)
+        com.example.core.EquipManager.init(applicationContext)
 
         database = AppDatabase.getDatabase(applicationContext)
         repository = StudyRepository(database)
