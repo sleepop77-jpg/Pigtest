@@ -1,4 +1,4 @@
-            package com.example.ui.store
+package com.example.ui.store
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,6 +21,9 @@ import com.example.data.local.entities.StoreItem
 import com.example.data.local.entities.Subject
 import com.example.data.repository.StudyRepository
 import com.example.ui.common.StudyIcons
+import com.example.ui.launcher.AnimatedMascotPreview
+import com.example.ui.launcher.AnimatedSkins
+import com.example.ui.launcher.AnimatedThemePreview
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -115,7 +118,6 @@ private fun StoreItemCard(
     val reqSubject = subjects.firstOrNull { it.id == item.requiredMasterySubject }
     val masteryLocked = item.requiredMasterySubject != null &&
             (reqSubject?.masteryPercent ?: 0) < item.requiredMasteryLevel
-
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceCream),
@@ -123,9 +125,25 @@ private fun StoreItemCard(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(PrimaryCoralLight.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    item.category == "Mascot" && item.id in AnimatedSkins.MASCOT_SET ->
+                        AnimatedMascotPreview(item.id, size = 56.dp)
+                    item.category == "Theme" ->
+                        AnimatedThemePreview(item.id, size = 56.dp)
+                    else ->
+                        Icon(imageVector = StudyIcons.Sparkle, contentDescription = null, tint = AccentOrange, modifier = Modifier.size(24.dp))
+                }
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(text = item.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = OnSurfaceDark)
@@ -140,7 +158,6 @@ private fun StoreItemCard(
                     }
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
             when {
                 !item.unlocked -> Button(
                     onClick = onBuy,
@@ -172,4 +189,4 @@ private fun StoreItemCard(
             }
         }
     }
-}    
+}
