@@ -1,6 +1,11 @@
 package com.example.ui.launcher
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,6 +35,7 @@ import com.example.core.TimeOfDayPhase
 import com.example.data.repository.StudyRepository
 import com.example.ui.common.StudyIcons
 import com.example.ui.theme.*
+import kotlin.math.sin
 
 data class AppGridItem(
     val title: String,
@@ -52,16 +59,12 @@ fun LauncherScreen(
     val streakDays by economyManager.currentStreakDays.collectAsState()
     val mascotState by economyManager.mascotState.collectAsState()
     val activeNotification by economyManager.activeNotification.collectAsState()
-
     val tasks by repository.allTasks.collectAsState(initial = emptyList())
     val notes by repository.allNotes.collectAsState(initial = emptyList())
     val studyGroups by repository.allStudyGroups.collectAsState(initial = emptyList())
     val userProfile by repository.userProfile.collectAsState(initial = null)
     val totalPomodoros by repository.totalPomodoros.collectAsState(initial = 0)
-
     val unfinishedTasksCount = tasks.count { !it.completed }
-
-    // Pure functional OS apps (removed Tutorial app icon as requested)
     val appGridItems = remember(unfinishedTasksCount, notes.size, studyGroups.size) {
         listOf(
             AppGridItem("Timer", StudyIcons.PomodoroTimer, Color(0xFFD9534F), "Focus", Color(0xFFD32F2F), "pomodoro"),
@@ -77,20 +80,35 @@ fun LauncherScreen(
             AppGridItem("Settings", StudyIcons.Settings, Color(0xFF757575), null, Color.Gray, "settings")
         )
     }
-
     val currentPhase = themeManager.getCurrentPhase()
     val isNightMode = themeManager.isDarkThemeActive()
-
     val equippedTheme by com.example.core.EquipManager.equippedTheme.collectAsState(initial = null)
-val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
-    when {
-        equippedTheme == "item_math_matrix" -> Brush.verticalGradient(
-            listOf(Color(0xFF003000), Color(0xFF001500))
-        )
-        equippedTheme == "item_spanish_fiesta" -> Brush.verticalGradient(
-            listOf(Color(0xFFF5A623), Color(0xFFD9534F), Color(0xFF9C27B0))
-        )
-        isNightMode -> Brush.verticalGradient(
+    val auroraTransition = rememberInfiniteTransition(label = "aurora")
+    val auroraPhase by auroraTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(6000, easing = LinearEasing), RepeatMode.Restart),
+        label = "auroraPhase"
+    )
+    val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme, auroraPhase) {
+        when {
+            equippedTheme == "item_aurora_dream" -> {
+                val shift = (sin(auroraPhase * 2.0 * Math.PI).toFloat() + 1f) / 2f
+                Brush.verticalGradient(
+                    listOf(
+                        lerp(Color(0xFF0B1026), Color(0xFF123B4A), shift),
+                        lerp(Color(0xFF1E6E5A), Color(0xFF3BA98B), shift),
+                        Color(0xFF0B1026)
+                    )
+                )
+            }
+            equippedTheme == "item_math_matrix" -> Brush.verticalGradient(
+                listOf(Color(0xFF003000), Color(0xFF001500))
+            )
+            equippedTheme == "item_spanish_fiesta" -> Brush.verticalGradient(
+                listOf(Color(0xFFF5A623), Color(0xFFD9534F), Color(0xFF9C27B0))
+            )
+            isNightMode -> Brush.verticalGradient(
                 listOf(Color(0xFF4A2C2C), Color(0xFF241515))
             )
             currentPhase == TimeOfDayPhase.MORNING_SUNRISE -> Brush.verticalGradient(
@@ -104,7 +122,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
             )
         }
     }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -119,7 +136,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 0. Top Bar: Scholar identity + Dark theme toggle + Settings quick link
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -160,12 +176,10 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                         )
                     }
                 }
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Dark Mode Toggle Switch
                     IconButton(
                         onClick = { themeManager.toggleDarkMode() },
                         modifier = Modifier
@@ -180,8 +194,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                             modifier = Modifier.size(19.dp)
                         )
                     }
-
-                    // Settings
                     IconButton(
                         onClick = { onNavigateToRoute("settings") },
                         modifier = Modifier
@@ -198,16 +210,12 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                     }
                 }
             }
-
-            // 1. Dynamic Circadian Status Bar (Fame vs Shame Balance)
             StatusBarComposable(
                 fame = totalFame,
                 shame = totalShame,
                 streakDays = streakDays,
                 onStatusBarClick = { onNavigateToRoute("pomodoro") }
             )
-
-            // Anti-Procrastination Sarcastic/Motivational Notification Alert (if active)
             AnimatedVisibility(
                 visible = activeNotification != null,
                 enter = fadeIn() + expandVertically(),
@@ -255,7 +263,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                                     )
                                 }
                             }
-
                             IconButton(onClick = { economyManager.dismissNotification() }) {
                                 Icon(
                                     imageVector = StudyIcons.Close,
@@ -268,8 +275,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                     }
                 }
             }
-
-            // 2. Hero Interactive Mascot Focus Card (Unified with Pomodoro Aesthetic)
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.18f)),
@@ -284,16 +289,13 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Tap-responsive animated Mascot with quotes and burst particles
                     InteractiveMascot(
                         state = mascotState,
                         size = 110.dp,
                         showArc = true,
                         progressArc = 0.85f
                     )
-
                     Spacer(modifier = Modifier.width(14.dp))
-
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -301,7 +303,7 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                         Text(
                             text = when (mascotState) {
                                 MascotState.STUDYING -> "Deep Focus Active"
-                                MascotState.STREAK -> "$streakDays-Day Streak On Fire! 🔥"
+                                MascotState.STREAK -> "$streakDays-Day Streak On Fire!"
                                 MascotState.WINNING -> "Champion Mode (+300 Fame)"
                                 MascotState.HIGH_SHAME -> "Study now to eliminate Shame!"
                                 MascotState.NIGHT_OWL -> "Night Owl Focus Ready"
@@ -311,14 +313,12 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                             fontSize = 15.sp,
                             color = Color.White
                         )
-
                         Text(
                             text = "+2 Fame/min in active sessions",
                             fontSize = 12.sp,
                             color = FameGold,
                             fontWeight = FontWeight.SemiBold
                         )
-
                         Button(
                             onClick = { onNavigateToRoute("pomodoro") },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
@@ -344,8 +344,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                     }
                 }
             }
-
-            // 3. Quick Stats & Challenge Widgets
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -359,7 +357,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                     streakDays = streakDays,
                     onClick = { onNavigateToRoute("analytics") }
                 )
-
                 ChallengeWidget(
                     challengeTitle = "Focus Milestone: Log 4 Pomodoro Sessions",
                     currentProgress = totalPomodoros,
@@ -369,8 +366,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                     onClick = { onNavigateToRoute("pomodoro") }
                 )
             }
-
-            // 4. OS App Grid (Unified with theme styling)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -384,8 +379,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                     fontSize = 12.sp,
                     letterSpacing = 1.2.sp
                 )
-
-                // 4-Column Grid Rows
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
@@ -401,7 +394,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                         )
                     }
                 }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
@@ -417,7 +409,6 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                         )
                     }
                 }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
@@ -432,212 +423,8 @@ val backgroundBrush = remember(currentPhase, isNightMode, equippedTheme) {
                             onClick = { onNavigateToRoute(item.route) }
                         )
                     }
-                    // Empty spacer to balance 4-column layout
                     Spacer(modifier = Modifier.width(68.dp))
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun AppIcon(
-    title: String,
-    icon: ImageVector,
-    accentColor: Color,
-    badgeText: String? = null,
-    badgeColor: Color = Color(0xFFE53935),
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = modifier
-            .width(72.dp)
-            .clickable { onClick() }
-            .padding(vertical = 4.dp)
-    ) {
-        Box(
-            modifier = Modifier.size(56.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White,
-                shadowElevation = 4.dp,
-                modifier = Modifier.size(52.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = accentColor,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-
-            if (badgeText != null) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = badgeColor,
-                    shadowElevation = 2.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 4.dp, y = (-2).dp)
-                ) {
-                    Text(
-                        text = badgeText,
-                        color = Color.White,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                    )
-                }
-            }
-        }
-
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-@Composable
-fun QuickStatsWidget(
-    fameEarnedThisWeek: Int,
-    shameIncurredThisWeek: Int,
-    globalRank: Int,
-    streakDays: Int,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White.copy(alpha = 0.15f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Weekly Focus Stats",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = Color.White
-                )
-                Text(
-                    text = "+$fameEarnedThisWeek Fame · $shameIncurredThisWeek Shame",
-                    fontSize = 11.sp,
-                    color = FameGold
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White.copy(alpha = 0.2f)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = StudyIcons.StreakFlame,
-                        contentDescription = null,
-                        tint = FameGold,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "$streakDays Days Streak",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ChallengeWidget(
-    challengeTitle: String,
-    currentProgress: Int,
-    targetGoal: Int,
-    rewardFame: Int,
-    deadlineText: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White.copy(alpha = 0.15f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = challengeTitle,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = "+$rewardFame Fame",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    color = FameGold
-                )
-            }
-
-            val progress = (currentProgress.toFloat() / targetGoal.toFloat()).coerceIn(0f, 1f)
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = FameGold,
-                trackColor = Color.White.copy(alpha = 0.2f),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "$currentProgress / $targetGoal completed",
-                    fontSize = 10.sp,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = deadlineText,
-                    fontSize = 10.sp,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
             }
         }
     }
