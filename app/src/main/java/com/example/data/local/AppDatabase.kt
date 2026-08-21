@@ -242,7 +242,7 @@ abstract class AppDatabase : RoomDatabase() {
                 bio = "Crushing daily focus targets with StudyOS Pomodoros and building high-yield study stocks!",
                 avatarId = "mascot_headphones",
                 dailyStudyTargetHours = 4.0f,
-                hasCompletedOnboarding = true,
+                hasCompletedOnboarding = false,
                 notificationsEnabled = true,
                 soundVibrationEnabled = true,
                 preferredTheme = "AUTO"
