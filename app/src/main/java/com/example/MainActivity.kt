@@ -10,12 +10,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -53,16 +56,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         NotificationHelper.initChannels(applicationContext)
         com.example.core.EquipManager.init(applicationContext)
-
         database = AppDatabase.getDatabase(applicationContext)
         repository = StudyRepository(database)
         themeManager = TimeBasedThemeManager()
         economyManager = EconomyManager(repository)
         timerManager = FocusTimerManager(applicationContext, repository, economyManager)
-
         setContent {
             val themeMode by themeManager.themeMode.collectAsState()
             val isDarkTheme = when (themeMode) {
@@ -70,13 +70,11 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.FORCE_CORAL_DAY -> false
                 ThemeMode.AUTO_TIME_BASED -> themeManager.getCurrentPhase() == TimeOfDayPhase.NIGHT_MAROON
             }
-
-            // Notification permission request for Android 13+
+            val userProfile by repository.userProfile.collectAsState(initial = null)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
-                ) { /* Permission granted or denied */ }
-
+                ) { }
                 LaunchedEffect(Unit) {
                     val hasPermission = ContextCompat.checkSelfPermission(
                         this@MainActivity,
@@ -87,15 +85,19 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-
             StudyOSTheme(darkTheme = isDarkTheme) {
-                StudyOSApp(
-                    repository = repository,
-                    economyManager = economyManager,
-                    timerManager = timerManager,
-                    themeManager = themeManager,
-                    isDarkTheme = isDarkTheme
-                )
+                if (userProfile == null) {
+                    Box(Modifier.fillMaxSize().background(Color(0xFFD9534F)))
+                } else {
+                    StudyOSApp(
+                        repository = repository,
+                        economyManager = economyManager,
+                        timerManager = timerManager,
+                        themeManager = themeManager,
+                        isDarkTheme = isDarkTheme,
+                        startOnboarding = !userProfile!!.hasCompletedOnboarding
+                    )
+                }
             }
         }
     }
@@ -113,18 +115,11 @@ fun StudyOSApp(
     economyManager: EconomyManager,
     timerManager: FocusTimerManager,
     themeManager: TimeBasedThemeManager,
-    isDarkTheme: Boolean
+    isDarkTheme: Boolean,
+    startOnboarding: Boolean
 ) {
     val navController = rememberNavController()
-    val userProfile by repository.userProfile.collectAsState(initial = null)
-
-    // First time launch: If user hasn't completed onboarding, direct to onboarding first!
-    val startDestination = if (userProfile != null && !userProfile!!.hasCompletedOnboarding) {
-        "onboarding"
-    } else {
-        "launcher"
-    }
-
+    val startDestination = if (startOnboarding) "onboarding" else "launcher"
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -145,109 +140,41 @@ fun StudyOSApp(
                 }
             )
         }
-
         composable("launcher") {
-            LauncherScreen(
-                repository = repository,
-                economyManager = economyManager,
-                themeManager = themeManager,
-                onNavigateToRoute = { route -> navController.navigate(route) }
-            )
+            LauncherScreen(repository = repository, economyManager = economyManager, themeManager = themeManager, onNavigateToRoute = { route -> navController.navigate(route) })
         }
-
         composable("profile") {
-            ProfileScreen(
-                repository = repository,
-                themeManager = themeManager,
-                economyManager = economyManager,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToOnboarding = { navController.navigate("onboarding") }
-            )
+            ProfileScreen(repository = repository, themeManager = themeManager, economyManager = economyManager, onNavigateBack = { navController.popBackStack() }, onNavigateToOnboarding = { navController.navigate("onboarding") })
         }
-
         composable("pomodoro") {
-            PomodoroScreen(
-                repository = repository,
-                economyManager = economyManager,
-                timerManager = timerManager,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            PomodoroScreen(repository = repository, economyManager = economyManager, timerManager = timerManager, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("tasks_goals") {
-            TasksGoalsScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            TasksGoalsScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("stocks") {
-            StockMarketScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            StockMarketScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("flashcards") {
-            FlashcardsScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            FlashcardsScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("notes") {
-            NotesScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            NotesScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("analytics") {
-            AnalyticsScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            AnalyticsScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("store") {
-            StoreScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            StoreScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("leaderboard") {
-            LeaderboardScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            LeaderboardScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("groups") {
-            StudyGroupsScreen(
-                repository = repository,
-                themeManager = themeManager,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            StudyGroupsScreen(repository = repository, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
-
         composable("settings") {
-            SettingsScreen(
-                themeManager = themeManager,
-                economyManager = economyManager,
-                repository = repository,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToOnboarding = { navController.navigate("onboarding") }
-            )
+            SettingsScreen(themeManager = themeManager, economyManager = economyManager, repository = repository, onNavigateBack = { navController.popBackStack() }, onNavigateToProfile = { navController.navigate("profile") }, onNavigateToOnboarding = { navController.navigate("onboarding") })
         }
     }
 }
