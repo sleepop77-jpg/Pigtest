@@ -1,8 +1,6 @@
 package com.example.ui.onboarding
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -27,10 +25,10 @@ import kotlinx.coroutines.launch
 
 data class OnboardingStep(
     val title: String,
-    val subtitle: String,
     val description: String,
     val badge: String,
-    val illustrationType: Int
+    val illustrationType: Int,
+    val keyFacts: List<String>
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,55 +41,85 @@ fun OnboardingScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val isDark = themeManager.isDarkThemeActive()
-
     val steps = remember {
         listOf(
             OnboardingStep(
                 title = "Welcome to StudyOS",
-                subtitle = "CIRCADIAN FOCUS OPERATING SYSTEM",
-                description = "Master your academic routine with a dynamic study OS that transitions naturally between Day Coral focus and Night Maroon calm.",
-                badge = "v2.0 Architecture",
-                illustrationType = 0
+                description = "A full study operating system that lives on your phone and reacts to your day.",
+                badge = "Circadian OS",
+                illustrationType = 0,
+                keyFacts = listOf(
+                    "Theme auto-shifts: Sunrise, Coral Day, Sunset, Night Maroon",
+                    "Your StudyBuddy mascot reacts live to every session",
+                    "Works 100% offline - your data stays on your phone"
+                )
             ),
             OnboardingStep(
-                title = "Pomodoro & Reactive Mascot",
-                subtitle = "DEEP FOCUS & EXAM PREP",
-                description = "Power through 25-minute Pomodoros and 50-minute Exam Prep sprints. Your StudyBuddy mascot reacts with fire auras during streaks!",
-                badge = "+2 Fame / Minute",
-                illustrationType = 1
+                title = "Pomodoro & Exam Prep",
+                description = "Run focus timers while your mascot types, sings, sweats and burns with you.",
+                badge = "Custom 1-480 min",
+                illustrationType = 1,
+                keyFacts = listOf(
+                    "Standard 25m or any custom duration",
+                    "Loop Mode = auto-restarting continuous cycles",
+                    "1h+ loops boost to 2.5 Fame/min",
+                    "3h straight = BURNING mode (+100 Fame)"
+                )
             ),
             OnboardingStep(
-                title = "Fame vs. Shame Economy",
-                subtitle = "GAMIFIED BEHAVIOR PROTOCOL",
-                description = "Active study generates Fame tokens. Idling during study hours incurs Shame penalties. Studying actively cancels Shame directly!",
+                title = "Fame vs Shame Economy",
+                description = "Study earns Fame. Idling during study hours earns Shame. Fame cancels Shame.",
                 badge = "Zero-Sum Balance",
-                illustrationType = 2
+                illustrationType = 2,
+                keyFacts = listOf(
+                    "+2 Fame every minute you study",
+                    "+1 Shame every idle minute (5 AM - 10 PM)",
+                    "DANGER HOURS 4-6 PM: +3 Shame per minute",
+                    "Active study cancels Shame 1:1 while running"
+                )
+            ),
+            OnboardingStep(
+                title = "Danger Hours: 4-6 PM",
+                description = "Every day from 4 to 6 PM the OS catches fire and Shame triples.",
+                badge = "Fire Protocol",
+                illustrationType = 1,
+                keyFacts = listOf(
+                    "Launcher turns into a burning fire theme",
+                    "Mascot panics until you start a session",
+                    "+3 Shame per minute if idle",
+                    "Starting a timer instantly stops the bleeding"
+                )
             ),
             OnboardingStep(
                 title = "Study Stocks & Squads",
-                subtitle = "KNOWLEDGE MARKET INTELLIGENCE",
-                description = "Invest your Fame in subject stocks (\$MATH, \$CS, \$PHYS, \$SPAN) whose valuations appreciate as you and your squad log study hours.",
-                badge = "Live Market Tickers",
-                illustrationType = 3
+                description = "Invest Fame in subject stocks that rise when you log study hours.",
+                badge = "Live Market",
+                illustrationType = 3,
+                keyFacts = listOf(
+                    "Trade \$MATH, \$CS, \$PHYS, \$SPAN, \$HIST",
+                    "Prices move with your weekly study volume",
+                    "Create squads and hit group Pomodoro goals"
+                )
             ),
             OnboardingStep(
-                title = "Personalize & Dark Theme",
-                subtitle = "SCHOLAR PROFILE & CONTROLS",
-                description = "Switch between Coral Day and Velvet Maroon Dark themes anytime. Customize your scholar profile, avatars, and daily GPA targets.",
-                badge = "Customizable Experience",
-                illustrationType = 4
+                title = "Fame Store & Cosmetics",
+                description = "Spend Fame on animated mascot skins, launcher themes and perks.",
+                badge = "Equip & Flex",
+                illustrationType = 4,
+                keyFacts = listOf(
+                    "Animated skins: halo, ninja, confetti and more",
+                    "Launcher themes: Matrix, Fiesta, Aurora",
+                    "Some items lock behind subject mastery"
+                )
             )
         )
     }
-
     val pagerState = rememberPagerState(pageCount = { steps.size })
-
     val bgBrush = if (isDark) {
         Brush.verticalGradient(listOf(Color(0xFF4A2C2C), Color(0xFF241515)))
     } else {
         Brush.verticalGradient(listOf(Color(0xFFD9534F), Color(0xFFC94440)))
     }
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent
@@ -107,11 +135,10 @@ fun OnboardingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top Header: App Branding + Skip Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -143,7 +170,6 @@ fun OnboardingScreen(
                             letterSpacing = 0.5.sp
                         )
                     }
-
                     if (pagerState.currentPage < steps.size - 1) {
                         TextButton(
                             onClick = {
@@ -164,8 +190,6 @@ fun OnboardingScreen(
                         Spacer(modifier = Modifier.size(48.dp))
                     }
                 }
-
-                // Center Content: Horizontal Pager
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
@@ -176,33 +200,29 @@ fun OnboardingScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        // SVG Illustration
                         Box(
                             modifier = Modifier
-                                .size(240.dp)
+                                .size(180.dp)
                                 .padding(8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             when (step.illustrationType) {
-                                0 -> CircadianWelcomeIllustration(size = 220.dp, isDark = isDark)
-                                1 -> PomodoroStreakIllustration(size = 220.dp, isDark = isDark)
-                                2 -> EconomyBalanceIllustration(size = 220.dp, isDark = isDark)
-                                3 -> StocksSquadsIllustration(size = 220.dp, isDark = isDark)
-                                else -> ProfileThemeIllustration(size = 220.dp, isDark = isDark)
+                                0 -> CircadianWelcomeIllustration(size = 180.dp, isDark = isDark)
+                                1 -> PomodoroStreakIllustration(size = 180.dp, isDark = isDark)
+                                2 -> EconomyBalanceIllustration(size = 180.dp, isDark = isDark)
+                                3 -> StocksSquadsIllustration(size = 180.dp, isDark = isDark)
+                                else -> ProfileThemeIllustration(size = 180.dp, isDark = isDark)
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Category pill badge
+                        Spacer(modifier = Modifier.height(10.dp))
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = if (isDark) SurfaceNightCard else Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 6.dp)
                         ) {
                             Text(
                                 text = step.badge.uppercase(),
@@ -213,35 +233,54 @@ fun OnboardingScreen(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }
-
                         Text(
                             text = step.title,
                             fontWeight = FontWeight.Black,
-                            fontSize = 24.sp,
+                            fontSize = 22.sp,
                             color = Color.White,
                             textAlign = TextAlign.Center
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = step.description,
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             color = if (isDark) OnSurfaceNightMuted else Color.White.copy(alpha = 0.9f),
                             textAlign = TextAlign.Center,
-                            lineHeight = 20.sp,
-                            modifier = Modifier.padding(horizontal = 12.dp)
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            step.keyFacts.forEach { fact ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = StudyIcons.FameStar,
+                                        contentDescription = null,
+                                        tint = FameGold,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = fact,
+                                        fontSize = 12.sp,
+                                        color = Color.White.copy(alpha = 0.95f),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-
-                // Bottom Controls: Page Indicator Dots & Action Buttons
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Dot indicators
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -259,10 +298,7 @@ fun OnboardingScreen(
                             )
                         }
                     }
-
-                    // Main Action Button
                     val isLastPage = pagerState.currentPage == steps.size - 1
-
                     Button(
                         onClick = {
                             if (isLastPage) {
