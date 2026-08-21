@@ -1,13 +1,13 @@
 package com.example.data.repository
 
+import android.content.Context
+import com.example.core.NotificationHelper
 import com.example.data.local.AppDatabase
 import com.example.data.local.entities.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
-class StudyRepository(private val database: AppDatabase) {
-
-    // Economy
+class StudyRepository(private val database: AppDatabase, private val context: Context? = null) {
     val allEconomyEntries: Flow<List<EconomyEntry>> = database.economyDao().getAllEntries()
     val totalFame: Flow<Int> = database.economyDao().getTotalFame()
     val totalShame: Flow<Int> = database.economyDao().getTotalShame()
@@ -37,7 +37,6 @@ class StudyRepository(private val database: AppDatabase) {
     }
 
     suspend fun cancelShameWithFame(amount: Int) {
-        // Fame cancels Shame
         database.economyDao().insert(
             EconomyEntry(
                 fameDelta = 0,
@@ -62,10 +61,9 @@ class StudyRepository(private val database: AppDatabase) {
         return false
     }
 
-    // Sessions
     val allSessions: Flow<List<SessionLog>> = database.sessionDao().getAllSessions()
     val totalPomodoros: Flow<Int> = database.sessionDao().getTotalPomodorosCount()
-    
+
     fun getTodayPomodoros(startOfDay: Long): Flow<Int> {
         return database.sessionDao().getTodayPomodorosCount(startOfDay)
     }
@@ -85,12 +83,8 @@ class StudyRepository(private val database: AppDatabase) {
                 isExamPrep = isExamPrep
             )
         )
-
-        // Add Fame (default +2 per minute, or 2.5 per min for 1h+ loop completion boost)
         val fameEarned = customFameEarned ?: (durationMinutes * 2)
         addFame(fameEarned, "Study Session ($durationMinutes mins in $subject)")
-
-        // Update subject study time
         val subjects = database.subjectDao().getAllSubjects().first()
         val match = subjects.firstOrNull { it.name.equals(subject, ignoreCase = true) || it.id.equals(subject, ignoreCase = true) }
         if (match != null) {
@@ -105,42 +99,41 @@ class StudyRepository(private val database: AppDatabase) {
         }
     }
 
-    // Tasks
     val allTasks: Flow<List<Task>> = database.taskDao().getAllTasks()
     suspend fun insertTask(task: Task) = database.taskDao().insert(task)
     suspend fun updateTask(task: Task) = database.taskDao().update(task)
     suspend fun deleteTask(task: Task) = database.taskDao().delete(task)
 
-    // Goals
     val allGoals: Flow<List<StudyGoal>> = database.studyGoalDao().getAllGoals()
     suspend fun insertGoal(goal: StudyGoal) = database.studyGoalDao().insert(goal)
     suspend fun updateGoal(goal: StudyGoal) = database.studyGoalDao().update(goal)
     suspend fun deleteGoal(goal: StudyGoal) = database.studyGoalDao().delete(goal)
+
     suspend fun claimGoalReward(goal: StudyGoal) {
         if (!goal.claimedReward) {
             database.studyGoalDao().update(goal.copy(claimedReward = true, completed = true))
             addFame(goal.rewardFame, "Completed Goal: ${goal.title}")
+            context?.let {
+                NotificationHelper.sendGoalCompleted(it, goal.title, goal.rewardFame)
+            }
         }
     }
 
-    // Subjects
     val allSubjects: Flow<List<Subject>> = database.subjectDao().getAllSubjects()
     suspend fun insertSubject(subject: Subject) = database.subjectDao().insert(subject)
     suspend fun updateSubject(subject: Subject) = database.subjectDao().update(subject)
 
-    // Flashcards
     val allDecks: Flow<List<FlashcardDeck>> = database.flashcardDao().getAllDecks()
     fun getCardsForDeck(deckId: String): Flow<List<Flashcard>> = database.flashcardDao().getCardsForDeck(deckId)
     suspend fun insertDeck(deck: FlashcardDeck) = database.flashcardDao().insertDeck(deck)
     suspend fun insertCard(card: Flashcard) = database.flashcardDao().insertCard(card)
+
     suspend fun recordFlashcardAnswer(card: Flashcard, isCorrect: Boolean, subjectName: String) {
         val updated = card.copy(
             reviewedCount = card.reviewedCount + 1,
             correctCount = if (isCorrect) card.correctCount + 1 else card.correctCount
         )
         database.flashcardDao().updateCard(updated)
-
-        // Update subject stats
         val subjects = database.subjectDao().getAllSubjects().first()
         val subj = subjects.firstOrNull { it.name.equals(subjectName, ignoreCase = true) || it.id.equals(subjectName, ignoreCase = true) }
         if (subj != null) {
@@ -157,31 +150,36 @@ class StudyRepository(private val database: AppDatabase) {
         }
     }
 
-    // Notes
     val allNotes: Flow<List<Note>> = database.noteDao().getAllNotes()
     suspend fun getNoteById(id: Long) = database.noteDao().getNoteById(id)
     suspend fun insertNote(note: Note) = database.noteDao().insert(note)
     suspend fun updateNote(note: Note) = database.noteDao().update(note)
     suspend fun deleteNote(note: Note) = database.noteDao().delete(note)
 
-    // Store
     val allStoreItems: Flow<List<StoreItem>> = database.storeItemDao().getAllItems()
+
     suspend fun purchaseStoreItem(item: StoreItem): Boolean {
         if (item.unlocked) return true
         val success = spendFame(item.costFame, "Purchased Store Item: ${item.name}")
         if (success) {
             database.storeItemDao().update(item.copy(unlocked = true))
+            context?.let {
+                NotificationHelper.sendMilestoneNotification(
+                    it,
+                    "Store Item Unlocked!",
+                    "${item.name} is now yours. Equip it from the Fame Store."
+                )
+            }
             return true
         }
         return false
     }
 
-    // Stocks
     val allStocks: Flow<List<Stock>> = database.stockDao().getAllStocks()
     val portfolio: Flow<List<StockPortfolio>> = database.stockPortfolioDao().getPortfolio()
 
     suspend fun buyStock(stock: Stock, quantity: Int): Boolean {
-        val totalCostFame = (stock.currentPrice * quantity * 10).toInt() // 1 stock dollar = 10 Fame
+        val totalCostFame = (stock.currentPrice * quantity * 10).toInt()
         val success = spendFame(totalCostFame, "Bought $quantity shares of ${stock.symbol}")
         if (success) {
             val currentPos = database.stockPortfolioDao().getPosition(stock.id)
@@ -199,6 +197,13 @@ class StudyRepository(private val database: AppDatabase) {
                     )
                 )
             }
+            context?.let {
+                NotificationHelper.sendMarketNotification(
+                    it,
+                    "Stock Purchased: ${stock.symbol}",
+                    "Bought $quantity shares for $totalCostFame Fame. Average price updated."
+                )
+            }
             return true
         }
         return false
@@ -207,21 +212,26 @@ class StudyRepository(private val database: AppDatabase) {
     suspend fun sellStock(stock: Stock, quantity: Int): Boolean {
         val currentPos = database.stockPortfolioDao().getPosition(stock.id) ?: return false
         if (currentPos.sharesOwned < quantity) return false
-
         val proceedsFame = (stock.currentPrice * quantity * 10).toInt()
         addFame(proceedsFame, "Sold $quantity shares of ${stock.symbol}")
-
         val remainingShares = currentPos.sharesOwned - quantity
         if (remainingShares > 0) {
             database.stockPortfolioDao().update(currentPos.copy(sharesOwned = remainingShares))
         } else {
             database.stockPortfolioDao().delete(currentPos)
         }
+        context?.let {
+            NotificationHelper.sendMarketNotification(
+                it,
+                "Stock Sold: ${stock.symbol}",
+                "Sold $quantity shares for +$proceedsFame Fame. Profit locked in."
+            )
+        }
         return true
     }
 
-    // Study Groups
     val allStudyGroups: Flow<List<StudyGroup>> = database.studyGroupDao().getAllGroups()
+
     suspend fun joinStudyGroup(group: StudyGroup) {
         database.studyGroupDao().update(
             group.copy(
@@ -230,6 +240,7 @@ class StudyRepository(private val database: AppDatabase) {
             )
         )
     }
+
     suspend fun leaveStudyGroup(group: StudyGroup) {
         database.studyGroupDao().update(
             group.copy(
@@ -238,11 +249,11 @@ class StudyRepository(private val database: AppDatabase) {
             )
         )
     }
+
     suspend fun createStudyGroup(group: StudyGroup) {
         database.studyGroupDao().insert(group)
     }
 
-    // User Profile & Preferences
     val userProfile: Flow<UserProfile?> = database.userProfileDao().getUserProfile()
 
     suspend fun updateUserProfile(profile: UserProfile) {
