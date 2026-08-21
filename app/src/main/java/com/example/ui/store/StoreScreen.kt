@@ -167,7 +167,7 @@ private fun StoreItemCard(
                 ) {
                     Icon(imageVector = StudyIcons.FameStar, contentDescription = null, tint = OnSurfaceDark, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "${item.costFame}", color = OnSurfaceDark, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                    Text(text = if (item.costFame == 0) "FREE" else "${item.costFame}", color = OnSurfaceDark, fontWeight = FontWeight.Black, fontSize = 13.sp)
                 }
                 isEquippable -> Button(
                     onClick = { scope.launch { EquipManager.toggle(item.category, item.id) } },
