@@ -59,9 +59,9 @@ class MainActivity : ComponentActivity() {
         NotificationHelper.initChannels(applicationContext)
         com.example.core.EquipManager.init(applicationContext)
         database = AppDatabase.getDatabase(applicationContext)
-        repository = StudyRepository(database)
+        repository = StudyRepository(database, applicationContext)
         themeManager = TimeBasedThemeManager()
-        economyManager = EconomyManager(repository)
+        economyManager = EconomyManager(applicationContext, repository, themeManager)
         timerManager = FocusTimerManager(applicationContext, repository, economyManager)
         setContent {
             val themeMode by themeManager.themeMode.collectAsState()
