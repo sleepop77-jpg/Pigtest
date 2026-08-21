@@ -42,6 +42,8 @@ class FocusTimerManager(
     private val _celebrationMessage = MutableStateFlow<String?>(null)
     val celebrationMessage: StateFlow<String?> = _celebrationMessage.asStateFlow()
 
+    private var breakJob: Job? = null
+
     init {
         scope.launch {
             while (true) {
@@ -64,46 +66,47 @@ class FocusTimerManager(
         val studyDurationMins = (_currentTotalDurationSeconds.value / 60).coerceAtLeast(1)
         val isOneHourPlus = studyDurationMins >= 60
         val isLoop = _timerMode.value == TimerMode.LOOP
-        
-        // Base Fame (+2/min) is already paid LIVE by EconomyManager ticks.
-        // Completion must NOT pay it again (that was the double-Fame loophole).
-        val baseFame = studyDurationMins * 2
-        
-        // Loop Boost: the advertised extra +0.5/min for 1h+ loops, paid once here.
-        val loopBoost = if (isLoop && isOneHourPlus) studyDurationMins / 2 else 0
-        if (loopBoost > 0) {
-            repository.addFame(loopBoost, "Loop Boost Bonus (1h+ focus, +0.5 Fame/min extra)")
+        val fameEarned = if (isLoop && isOneHourPlus) {
+            (studyDurationMins * 2.5).toInt()
+        } else {
+            studyDurationMins * 2
         }
-        
         repository.recordStudySession(
             sessionType = "FocusTimer",
             subject = _selectedSubject.value,
             durationMinutes = studyDurationMins,
             isExamPrep = false,
-            customFameEarned = 0
+            customFameEarned = fameEarned
         )
-        NotificationHelper.sendPomodoroFinished(context, _selectedSubject.value, studyDurationMins, baseFame + loopBoost)
-        
+        NotificationHelper.sendPomodoroFinished(context, _selectedSubject.value, studyDurationMins, fameEarned)
         if (isLoop) {
             _currentRound.value += 1
             _celebrationMessage.value = if (isOneHourPlus) {
-                "1-Hour+ Loop Completed! $baseFame Fame live + $loopBoost Boost!"
+                "1-Hour+ Loop Completed! Boost Applied: +$fameEarned Fame (2.5 Fame/min)!"
             } else {
-                "Loop Cycle #${_currentRound.value} Completed! +$baseFame Fame earned live!"
+                "Loop Cycle #${_currentRound.value} Completed! +$fameEarned Fame Earned!"
             }
             _secondsRemaining.value = _currentTotalDurationSeconds.value
         } else {
             _isRunning.value = false
             economyManager.stopStudySession()
-            _celebrationMessage.value = "Focus Timer Complete! +$baseFame Fame earned during session!"
+            _celebrationMessage.value = "Focus Timer Complete! +$fameEarned Fame Added!"
             _secondsRemaining.value = _currentTotalDurationSeconds.value
             if (_currentRound.value < totalRounds) {
                 _currentRound.value += 1
+            }
+            breakJob?.cancel()
+            breakJob = scope.launch {
+                delay(5 * 60_000L)
+                if (!_isRunning.value) {
+                    NotificationHelper.sendBreakFinished(context, _currentRound.value)
+                }
             }
         }
     }
 
     fun start() {
+        breakJob?.cancel()
         _isRunning.value = true
         economyManager.startStudySession(_selectedSubject.value)
     }
