@@ -1,13 +1,11 @@
 package com.example.core
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.MainActivity
@@ -21,6 +19,8 @@ object NotificationHelper {
     private const val NOTIF_ID_POMODORO = 1001
     private const val NOTIF_ID_SAVAGE = 1002
     private const val NOTIF_ID_GOAL = 1003
+    private const val NOTIF_ID_MILESTONE = 1004
+    private const val NOTIF_ID_MARKET = 1005
 
     fun initChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -30,7 +30,7 @@ object NotificationHelper {
                 "Study Timer Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alerts when Focus Timer rounds conclude"
+                description = "Alerts when Focus Timer rounds conclude and breaks end"
                 enableVibration(true)
             }
             val savageChannel = NotificationChannel(
@@ -54,101 +54,90 @@ object NotificationHelper {
         }
     }
 
-    private fun buildCustomNotification(
-        context: Context,
-        channelId: String,
-        notifId: Int,
-        title: String,
-        message: String,
-        accentColor: Int
-    ): Notification {
+    private fun baseIntent(context: Context): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val pendingIntent = PendingIntent.getActivity(
+        return PendingIntent.getActivity(
             context,
-            notifId,
+            0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
-
-        val collapsed = RemoteViews(context.packageName, R.layout.notif_collapsed)
-        collapsed.setTextViewText(R.id.notif_title, title)
-        collapsed.setTextViewText(R.id.notif_text, message)
-        collapsed.setInt(R.id.notif_icon, "setColorFilter", accentColor)
-
-        val expanded = RemoteViews(context.packageName, R.layout.notif_expanded)
-        expanded.setTextViewText(R.id.notif_title_big, title)
-        expanded.setTextViewText(R.id.notif_text_big, message)
-        expanded.setInt(R.id.notif_icon_big, "setColorFilter", accentColor)
-        expanded.setOnClickPendingIntent(R.id.notif_action_btn, pendingIntent)
-
-        return NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.notif_icon_flame)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-            .setCustomContentView(collapsed)
-            .setCustomBigContentView(expanded)
-            .setCustomHeadsUpContentView(collapsed)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setColor(accentColor)
-            .setContentIntent(pendingIntent)
-            .build()
     }
 
     fun sendPomodoroFinished(context: Context, subject: String, minutes: Int, fameEarned: Int) {
-        try {
-            NotificationManagerCompat.from(context).notify(
-                NOTIF_ID_POMODORO,
-                buildCustomNotification(
-                    context, CHANNEL_POMODORO, NOTIF_ID_POMODORO,
-                    "Focus Session Complete! (+$fameEarned Fame)",
-                    "You crushed $minutes min of deep focus in $subject. Your stock is rising!",
-                    0xFFFFD700.toInt()
-                )
-            )
-        } catch (_: SecurityException) { }
+        val notification = NotificationCompat.Builder(context, CHANNEL_POMODORO)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle("Focus Session Complete! (+$fameEarned Fame)")
+            .setContentText("Great job studying $subject for $minutes min! Take a well-deserved break.")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("You crushed $minutes minutes of deep focus in $subject. +$fameEarned Fame added to your balance. Your subject stock is rising!"))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(baseIntent(context))
+            .build()
+        try { NotificationManagerCompat.from(context).notify(NOTIF_ID_POMODORO, notification) } catch (_: SecurityException) { }
     }
 
     fun sendBreakFinished(context: Context, nextRound: Int) {
-        try {
-            NotificationManagerCompat.from(context).notify(
-                NOTIF_ID_POMODORO,
-                buildCustomNotification(
-                    context, CHANNEL_POMODORO, NOTIF_ID_POMODORO,
-                    "Break is Over! (Round $nextRound/4)",
-                    "Time to lock back in. Your study buddy is waiting at the desk!",
-                    0xFFD9534F.toInt()
-                )
-            )
-        } catch (_: SecurityException) { }
+        val notification = NotificationCompat.Builder(context, CHANNEL_POMODORO)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Break is Over! (Round $nextRound/4)")
+            .setContentText("Time to lock back in. Your study buddy is waiting at the desk!")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(baseIntent(context))
+            .build()
+        try { NotificationManagerCompat.from(context).notify(NOTIF_ID_POMODORO, notification) } catch (_: SecurityException) { }
     }
 
     fun sendSavageAlert(context: Context, title: String, message: String) {
-        try {
-            NotificationManagerCompat.from(context).notify(
-                NOTIF_ID_SAVAGE,
-                buildCustomNotification(
-                    context, CHANNEL_SAVAGE, NOTIF_ID_SAVAGE,
-                    title,
-                    message,
-                    0xFFC41C3B.toInt()
-                )
-            )
-        } catch (_: SecurityException) { }
+        val notification = NotificationCompat.Builder(context, CHANNEL_SAVAGE)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(baseIntent(context))
+            .build()
+        try { NotificationManagerCompat.from(context).notify(NOTIF_ID_SAVAGE, notification) } catch (_: SecurityException) { }
     }
 
     fun sendGoalCompleted(context: Context, goalTitle: String, fameEarned: Int) {
-        try {
-            NotificationManagerCompat.from(context).notify(
-                NOTIF_ID_GOAL,
-                buildCustomNotification(
-                    context, CHANNEL_GOALS, NOTIF_ID_GOAL,
-                    "Goal Crushed! (+$fameEarned Fame)",
-                    "You reached the milestone: $goalTitle",
-                    0xFF20B2AA.toInt()
-                )
-            )
-        } catch (_: SecurityException) { }
+        val notification = NotificationCompat.Builder(context, CHANNEL_GOALS)
+            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setContentTitle("Goal Crushed! (+$fameEarned Fame)")
+            .setContentText("You reached the milestone: $goalTitle")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setContentIntent(baseIntent(context))
+            .build()
+        try { NotificationManagerCompat.from(context).notify(NOTIF_ID_GOAL, notification) } catch (_: SecurityException) { }
+    }
+
+    fun sendMilestoneNotification(context: Context, title: String, message: String) {
+        val notification = NotificationCompat.Builder(context, CHANNEL_GOALS)
+            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setContentIntent(baseIntent(context))
+            .build()
+        try { NotificationManagerCompat.from(context).notify(NOTIF_ID_MILESTONE, notification) } catch (_: SecurityException) { }
+    }
+
+    fun sendMarketNotification(context: Context, title: String, message: String) {
+        val notification = NotificationCompat.Builder(context, CHANNEL_GOALS)
+            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setContentIntent(baseIntent(context))
+            .build()
+        try { NotificationManagerCompat.from(context).notify(NOTIF_ID_MARKET, notification) } catch (_: SecurityException) { }
     }
 }
