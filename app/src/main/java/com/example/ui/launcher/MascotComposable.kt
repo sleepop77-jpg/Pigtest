@@ -598,10 +598,13 @@ private fun DrawScope.drawSphereFace(
     }
     fun happyEye(ex: Float) {
         drawArc(
-            ink, 180f, 180f, false,
-            Offset(ex - rx * 0.14f, eyeY - rx * 0.04f),
-            Size(rx * 0.28f, rx * 0.22f),
-            Stroke(lw, cap = StrokeCap.Round)
+            color = ink,
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(ex - rx * 0.14f, eyeY - rx * 0.04f),
+            size = Size(rx * 0.28f, rx * 0.22f),
+            style = Stroke(width = lw, cap = StrokeCap.Round)
         )
     }
     when (effective) {
@@ -633,17 +636,23 @@ private fun DrawScope.drawSphereFace(
     when {
         effective == 3 -> {
             drawArc(
-                ink, 0f, 180f, true,
-                Offset(headCenter.x - rx * 0.18f, mouthY - rx * 0.08f),
-                Size(rx * 0.36f, rx * 0.22f)
+                color = ink,
+                startAngle = 0f,
+                sweepAngle = 180f,
+                useCenter = true,
+                topLeft = Offset(headCenter.x - rx * 0.18f, mouthY - rx * 0.08f),
+                size = Size(rx * 0.36f, rx * 0.22f)
             )
         }
         effective == 2 -> {
             drawArc(
-                ink, 200f, 140f, false,
-                Offset(headCenter.x - rx * 0.14f, mouthY - rx * 0.06f),
-                Size(rx * 0.28f, rx * 0.16f),
-                Stroke(lw * 0.8f, cap = StrokeCap.Round)
+                color = ink,
+                startAngle = 200f,
+                sweepAngle = 140f,
+                useCenter = false,
+                topLeft = Offset(headCenter.x - rx * 0.14f, mouthY - rx * 0.06f),
+                size = Size(rx * 0.28f, rx * 0.16f),
+                style = Stroke(width = lw * 0.8f, cap = StrokeCap.Round)
             )
         }
         effective == 0 || effective == 4 -> {
