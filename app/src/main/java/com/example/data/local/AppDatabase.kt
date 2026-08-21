@@ -208,7 +208,9 @@ abstract class AppDatabase : RoomDatabase() {
                 StoreItem("item_math_matrix", "Matrix Hacker Theme", "Emerald terminal aesthetic for intense study sessions.", "Theme", 200, false, "math", 50),
                 StoreItem("item_spanish_fiesta", "Sol & Coral Palette", "Warm Andalusian sunset colors for all OS app icons.", "Theme", 200, false, "spanish", 60),
                 StoreItem("item_savage_alerts", "Savage Notifications Pack", "Unlock the most hilariously brutal sarcastic reminders.", "Perk", 80, true, null, 0),
-                StoreItem("item_night_owl_skin", "Night Owl Mascot Skin", "Cute sleepy nightcap with starry halo.", "Mascot", 180, false, null, 0),
+StoreItem("item_night_owl_skin", "Night Owl Mascot Skin", "Cute sleepy nightcap with starry halo.", "Mascot", 180, false, null, 0),
+            StoreItem("item_nyc_sphere", "Vegas Sphere Buddy", "A giant glowing sphere with a live animated face, rising over a New York skyline. FREE launch gift!", "Mascot", 0, false, null, 0)
+                ,
                 StoreItem("item_halo_scholar", "Scholar Halo", "A floating golden halo with orbiting sparkles. Pure academic divinity.", "Mascot", 220, false, null, 0),
                 StoreItem("item_ninja_headband", "Focus Ninja Headband", "Waving red tails for silent study assassins.", "Mascot", 180, false, null, 0),
                 StoreItem("item_party_mode", "Party Mode Confetti", "Permanent celebration: confetti rains while you grind.", "Mascot", 260, false, null, 0),
