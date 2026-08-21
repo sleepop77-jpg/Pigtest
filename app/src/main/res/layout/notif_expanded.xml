@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="@drawable/notif_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/notif_icon_big"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/notif_icon_flame" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="STUDYOS"
+            android:textColor="#FFFFD700"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:letterSpacing="2" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/notif_title_big"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="#FFFFFFFF"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/notif_text_big"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#DDFFFFFF"
+        android:textSize="13sp"
+        android:maxLines="3"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/notif_action_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/notif_btn_gold"
+        android:gravity="center"
+        android:padding="10dp"
+        android:text="START FOCUS SESSION"
+        android:textColor="#FF2B0503"
+        android:textStyle="bold"
+        android:textSize="12sp" />
+</LinearLayout>
