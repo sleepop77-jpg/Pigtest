@@ -140,7 +140,7 @@ data class UserProfile(
     val bio: String = "Crushing daily focus targets with StudyOS Pomodoros and building high-yield study stocks!",
     val avatarId: String = "mascot_headphones", // mascot_headphones, mascot_crown, mascot_flame, mascot_sleepy, mascot_glasses
     val dailyStudyTargetHours: Float = 4.0f,
-    val hasCompletedOnboarding: Boolean = true,
+    val hasCompletedOnboarding: Boolean = false,
     val notificationsEnabled: Boolean = true,
     val soundVibrationEnabled: Boolean = true,
     val preferredTheme: String = "AUTO" // "LIGHT", "DARK", "AUTO"
