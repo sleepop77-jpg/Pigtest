@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -87,7 +88,8 @@ fun InteractiveMascot(
                 "Study now, thank yourself on exam day!",
                 "Petting detected! Motivation restored +100!",
                 "I'm keeping your study streak alive!",
-                "No procrastination on my watch!"
+                "No procrastination on my watch!",
+                "Sphere mode: I glow when you grow!"
             )
         }
     }
@@ -197,41 +199,97 @@ fun MascotComposable(
     val equippedSkin by com.example.core.EquipManager.equippedMascot.collectAsState(initial = null)
     val infiniteTransition = rememberInfiniteTransition(label = "mascot_anim")
     val breathScale by infiniteTransition.animateFloat(
-        initialValue = 0.97f, targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(animation = tween(1400, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
+        initialValue = 0.97f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
         label = "breath"
     )
     val typingStrokeLeft by infiniteTransition.animateFloat(
-        initialValue = -7f, targetValue = 7f,
-        animationSpec = infiniteRepeatable(animation = tween(120, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        initialValue = -7f,
+        targetValue = 7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(120, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
         label = "typingLeft"
     )
     val typingStrokeRight by infiniteTransition.animateFloat(
-        initialValue = 7f, targetValue = -7f,
-        animationSpec = infiniteRepeatable(animation = tween(120, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        initialValue = 7f,
+        targetValue = -7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(120, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
         label = "typingRight"
     )
     val musicNotePhase by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(2200, easing = LinearEasing), repeatMode = RepeatMode.Restart),
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
         label = "musicFloat"
     )
     val steamPuffPhase by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(1800, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Restart),
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
         label = "steamPuff"
     )
     val fireFlicker by infiniteTransition.animateFloat(
-        initialValue = 0.8f, targetValue = 1.25f,
-        animationSpec = infiniteRepeatable(animation = tween(160, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
+        initialValue = 0.8f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(160, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
         label = "fireFlicker"
     )
     val flameGlow by infiniteTransition.animateFloat(
-        initialValue = 0.4f, targetValue = 0.95f,
-        animationSpec = infiniteRepeatable(animation = tween(400, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        initialValue = 0.4f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
         label = "flameGlow"
     )
+    val sphereHue by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(7000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sphereHue"
+    )
+    val sphereBlink by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sphereBlink"
+    )
+    val sphereTwinkle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sphereTwinkle"
+    )
     var studyMoodCycle by remember { mutableIntStateOf(0) }
+    var sphereMood by remember { mutableIntStateOf(0) }
     LaunchedEffect(state) {
         if (state == MascotState.STUDYING) {
             while (true) {
@@ -240,10 +298,19 @@ fun MascotComposable(
             }
         }
     }
+    LaunchedEffect(equippedSkin) {
+        if (equippedSkin == "item_nyc_sphere") {
+            while (true) {
+                delay(3800)
+                sphereMood = (sphereMood + 1) % 5
+            }
+        }
+    }
     val isStudying = state == MascotState.STUDYING
     val isBurning = state == MascotState.BURNING
     val isFrustrated = (isStudying && studyMoodCycle == 2) || state == MascotState.FRUSTRATED
     val isSinging = (isStudying && studyMoodCycle == 1) || state == MascotState.SINGING
+    val isSphere = equippedSkin == "item_nyc_sphere"
     Box(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center
@@ -255,14 +322,19 @@ fun MascotComposable(
             val cy = h / 2f
             if (showArc) {
                 val arcRadius = w * 0.45f
-                val arcRect = androidx.compose.ui.geometry.Rect(
-                    cx - arcRadius, cy - arcRadius - (h * 0.05f),
-                    cx + arcRadius, cy + arcRadius - (h * 0.05f)
+                val arcRect = Rect(
+                    cx - arcRadius,
+                    cy - arcRadius - (h * 0.05f),
+                    cx + arcRadius,
+                    cy + arcRadius - (h * 0.05f)
                 )
                 drawArc(
                     color = Color.White.copy(alpha = 0.25f),
-                    startAngle = 160f, sweepAngle = 220f, useCenter = false,
-                    topLeft = arcRect.topLeft, size = arcRect.size,
+                    startAngle = 160f,
+                    sweepAngle = 220f,
+                    useCenter = false,
+                    topLeft = arcRect.topLeft,
+                    size = arcRect.size,
                     style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
                 )
                 if (progressArc > 0f) {
@@ -272,8 +344,11 @@ fun MascotComposable(
                             state == MascotState.STREAK -> FameGold
                             else -> Color.White
                         },
-                        startAngle = 160f, sweepAngle = 220f * progressArc, useCenter = false,
-                        topLeft = arcRect.topLeft, size = arcRect.size,
+                        startAngle = 160f,
+                        sweepAngle = 220f * progressArc,
+                        useCenter = false,
+                        topLeft = arcRect.topLeft,
+                        size = arcRect.size,
                         style = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round)
                     )
                 }
@@ -291,8 +366,12 @@ fun MascotComposable(
                     radius = w * 0.48f
                 )
             }
-            if (isSinging && !isBurning) drawFloatingMusicalNotes(cx, cy, w, h, musicNotePhase)
-            if (isFrustrated && !isBurning) drawFrustrationSteamPuffs(cx, cy, w, h, steamPuffPhase)
+            if (isSinging && !isBurning) {
+                drawFloatingMusicalNotes(cx, cy, w, h, musicNotePhase)
+            }
+            if (isFrustrated && !isBurning) {
+                drawFrustrationSteamPuffs(cx, cy, w, h, steamPuffPhase)
+            }
             val currentScale = if (isStudying || isBurning) breathScale else 1f
             val headRadiusX = (w * 0.23f) * currentScale
             val headRadiusY = (h * 0.21f) * currentScale
@@ -302,69 +381,290 @@ fun MascotComposable(
                 topLeft = Offset(headCenter.x - headRadiusX, headCenter.y - headRadiusY + 3.dp.toPx()),
                 size = Size(headRadiusX * 2, headRadiusY * 2)
             )
-            val headColor = when {
-                isBurning -> Color(0xFFFF5252)
-                state == MascotState.HIGH_SHAME -> Color(0xFFFFEBEE)
-                else -> Color(0xFFFFF7F6)
-            }
-            drawOval(
-                color = headColor,
-                topLeft = Offset(headCenter.x - headRadiusX, headCenter.y - headRadiusY),
-                size = Size(headRadiusX * 2, headRadiusY * 2)
-            )
-            drawOval(
-                color = if (isBurning) Color(0xFFB71C1C) else PrimaryCoralDark.copy(alpha = 0.35f),
-                topLeft = Offset(headCenter.x - headRadiusX, headCenter.y - headRadiusY),
-                size = Size(headRadiusX * 2, headRadiusY * 2),
-                style = Stroke(width = 1.8.dp.toPx())
-            )
-            val blushColor = if (isBurning) FameGold else PrimaryCoral
-            drawCircle(
-                color = blushColor.copy(alpha = if (isPetting || isBurning) 0.7f else 0.35f),
-                radius = 4.5.dp.toPx(),
-                center = Offset(headCenter.x - 14.dp.toPx(), headCenter.y + 7.dp.toPx())
-            )
-            drawCircle(
-                color = blushColor.copy(alpha = if (isPetting || isBurning) 0.7f else 0.35f),
-                radius = 4.5.dp.toPx(),
-                center = Offset(headCenter.x + 14.dp.toPx(), headCenter.y + 7.dp.toPx())
-            )
-            val leafPath = Path().apply {
-                moveTo(headCenter.x, headCenter.y - headRadiusY)
-                quadraticTo(headCenter.x + 8.dp.toPx(), headCenter.y - headRadiusY - 11.dp.toPx(), headCenter.x + 15.dp.toPx(), headCenter.y - headRadiusY - 9.dp.toPx())
-                quadraticTo(headCenter.x + 5.dp.toPx(), headCenter.y - headRadiusY - 2.dp.toPx(), headCenter.x, headCenter.y - headRadiusY)
-                close()
-            }
-            drawPath(
-                path = leafPath,
-                color = when {
-                    isBurning -> Color(0xFFFF9800)
-                    state == MascotState.HIGH_SHAME -> WarningRed
-                    else -> SuccessGreen
+            if (isSphere) {
+                drawSphereBuddy(headCenter, headRadiusX * 1.32f, headRadiusY * 1.32f, sphereHue, flameGlow)
+                drawNycSkyline(cx, cy, w, h, sphereTwinkle)
+                drawSphereFace(headCenter, headRadiusX * 1.32f, sphereMood, sphereBlink > 0.93f, state, isPetting)
+            } else {
+                val headColor = when {
+                    isBurning -> Color(0xFFFF5252)
+                    state == MascotState.HIGH_SHAME -> Color(0xFFFFEBEE)
+                    else -> Color(0xFFFFF7F6)
                 }
-            )
-            drawFacialExpressions(
-                state = state, isPetting = isPetting, isBurning = isBurning,
-                isSinging = isSinging, isFrustrated = isFrustrated,
-                headCenter = headCenter, headRadiusX = headRadiusX,
-                headRadiusY = headRadiusY, cx = cx
-            )
+                drawOval(
+                    color = headColor,
+                    topLeft = Offset(headCenter.x - headRadiusX, headCenter.y - headRadiusY),
+                    size = Size(headRadiusX * 2, headRadiusY * 2)
+                )
+                drawOval(
+                    color = if (isBurning) Color(0xFFB71C1C) else PrimaryCoralDark.copy(alpha = 0.35f),
+                    topLeft = Offset(headCenter.x - headRadiusX, headCenter.y - headRadiusY),
+                    size = Size(headRadiusX * 2, headRadiusY * 2),
+                    style = Stroke(width = 1.8.dp.toPx())
+                )
+                val blushColor = if (isBurning) FameGold else PrimaryCoral
+                drawCircle(
+                    color = blushColor.copy(alpha = if (isPetting || isBurning) 0.7f else 0.35f),
+                    radius = 4.5.dp.toPx(),
+                    center = Offset(headCenter.x - 14.dp.toPx(), headCenter.y + 7.dp.toPx())
+                )
+                drawCircle(
+                    color = blushColor.copy(alpha = if (isPetting || isBurning) 0.7f else 0.35f),
+                    radius = 4.5.dp.toPx(),
+                    center = Offset(headCenter.x + 14.dp.toPx(), headCenter.y + 7.dp.toPx())
+                )
+                val leafPath = Path().apply {
+                    moveTo(headCenter.x, headCenter.y - headRadiusY)
+                    quadraticTo(headCenter.x + 8.dp.toPx(), headCenter.y - headRadiusY - 11.dp.toPx(), headCenter.x + 15.dp.toPx(), headCenter.y - headRadiusY - 9.dp.toPx())
+                    quadraticTo(headCenter.x + 5.dp.toPx(), headCenter.y - headRadiusY - 2.dp.toPx(), headCenter.x, headCenter.y - headRadiusY)
+                    close()
+                }
+                drawPath(
+                    path = leafPath,
+                    color = when {
+                        isBurning -> Color(0xFFFF9800)
+                        state == MascotState.HIGH_SHAME -> WarningRed
+                        else -> SuccessGreen
+                    }
+                )
+                drawFacialExpressions(
+                    state = state,
+                    isPetting = isPetting,
+                    isBurning = isBurning,
+                    isSinging = isSinging,
+                    isFrustrated = isFrustrated,
+                    headCenter = headCenter,
+                    headRadiusX = headRadiusX,
+                    headRadiusY = headRadiusY,
+                    cx = cx
+                )
+            }
             drawModernLaptopAndPaws(
-                cx = cx, cy = cy, w = w, h = h,
-                isStudying = isStudying || isBurning, isBurning = isBurning,
-                typingLeft = typingStrokeLeft, typingRight = typingStrokeRight,
+                cx = cx,
+                cy = cy,
+                w = w,
+                h = h,
+                isStudying = isStudying || isBurning,
+                isBurning = isBurning,
+                typingLeft = typingStrokeLeft,
+                typingRight = typingStrokeRight,
                 headCenter = headCenter
             )
             drawEquippedSkin(equippedSkin, cx, cy, w, h, headCenter)
-            drawExtraSkins(equippedSkin, cx, cy, w, h, headCenter, musicNotePhase)
+        }
+    }
+}
+
+private fun DrawScope.drawSphereBuddy(
+    headCenter: Offset,
+    rx: Float,
+    ry: Float,
+    huePhase: Float,
+    glow: Float
+) {
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(Color(0xFFFFC400).copy(alpha = 0.40f * glow), Color.Transparent),
+            center = headCenter,
+            radius = rx * 1.9f
+        ),
+        center = headCenter,
+        radius = rx * 1.9f
+    )
+    val body = when {
+        huePhase < 0.33f -> lerp(Color(0xFFFFD54F), Color(0xFFFFB300), huePhase / 0.33f)
+        huePhase < 0.66f -> lerp(Color(0xFFFFB300), Color(0xFFCDDC39), (huePhase - 0.33f) / 0.33f)
+        else -> lerp(Color(0xFFCDDC39), Color(0xFFFFD54F), (huePhase - 0.66f) / 0.34f)
+    }
+    val bodyDark = lerp(body, Color(0xFF8D6E63), 0.35f)
+    val rect = Rect(headCenter.x - rx, headCenter.y - ry, headCenter.x + rx, headCenter.y + ry)
+    drawOval(
+        brush = Brush.verticalGradient(listOf(body, bodyDark), startY = rect.top, endY = rect.bottom),
+        topLeft = rect.topLeft,
+        size = rect.size
+    )
+    val spherePath = Path().apply { addOval(rect) }
+    clipPath(spherePath) {
+        val step = 6.dp.toPx()
+        var row = 0
+        var y = rect.top + step / 2f
+        while (y < rect.bottom) {
+            var x = rect.left + (if (row % 2 == 0) 0f else step / 2f)
+            while (x < rect.right) {
+                drawCircle(Color(0xFF3E2723).copy(alpha = 0.10f), 1.1.dp.toPx(), Offset(x, y))
+                x += step
+            }
+            y += step * 0.9f
+            row++
+        }
+        drawOval(
+            color = Color.White.copy(alpha = 0.22f),
+            topLeft = Offset(rect.left + rx * 0.35f, rect.top + ry * 0.16f),
+            size = Size(rx * 0.75f, ry * 0.42f)
+        )
+    }
+    drawOval(
+        color = Color(0xFF5D4037).copy(alpha = 0.45f),
+        topLeft = rect.topLeft,
+        size = rect.size,
+        style = Stroke(width = 1.5.dp.toPx())
+    )
+}
+
+private fun DrawScope.drawNycSkyline(
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    twinkle: Float
+) {
+    val horizon = cy + h * 0.26f
+    for (i in 0 until 8) {
+        val sx = w * (((i * 0.117f) + 0.04f) % 1f)
+        val sy = h * 0.08f + (i % 4) * h * 0.03f
+        val a = 0.3f + 0.5f * kotlin.math.abs(sin(twinkle * 2f * Math.PI.toFloat() + i * 1.7f))
+        drawCircle(Color.White.copy(alpha = a), 1.1.dp.toPx(), Offset(sx, sy))
+    }
+    val buildings = listOf(
+        floatArrayOf(0.00f, 0.14f, 0.26f),
+        floatArrayOf(0.16f, 0.12f, 0.38f),
+        floatArrayOf(0.30f, 0.16f, 0.30f),
+        floatArrayOf(0.48f, 0.13f, 0.44f),
+        floatArrayOf(0.63f, 0.15f, 0.32f),
+        floatArrayOf(0.80f, 0.12f, 0.26f),
+        floatArrayOf(0.93f, 0.08f, 0.20f)
+    )
+    buildings.forEachIndexed { bi, b ->
+        val bx = w * b[0]
+        val bw = w * b[1]
+        val bh = h * b[2]
+        val top = horizon - bh
+        drawRoundRect(
+            Color(0xFF1A2332),
+            Offset(bx, top),
+            Size(bw, bh),
+            androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
+        )
+        if (bi == 3) {
+            drawLine(Color(0xFF1A2332), Offset(bx + bw / 2f, top), Offset(bx + bw / 2f, top - h * 0.07f), 2.dp.toPx())
+            drawCircle(FameGold.copy(alpha = 0.5f + 0.5f * twinkle), 1.6.dp.toPx(), Offset(bx + bw / 2f, top - h * 0.07f))
+        }
+        val cols = 3
+        val rows = (bh / (9.dp.toPx())).toInt().coerceAtMost(5)
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
+                val on = sin(twinkle * 2f * Math.PI.toFloat() + (bi * 7 + r * 3 + c) * 1.3f) > -0.1f
+                if (on) {
+                    drawRoundRect(
+                        Color(0xFFFFE082).copy(alpha = 0.75f),
+                        Offset(bx + bw * (0.16f + c * 0.28f), top + 3.dp.toPx() + r * 8.dp.toPx()),
+                        Size(bw * 0.16f, 3.5.dp.toPx()),
+                        androidx.compose.ui.geometry.CornerRadius(1.dp.toPx())
+                    )
+                }
+            }
+        }
+    }
+    drawLine(Color.White.copy(alpha = 0.2f), Offset(0f, horizon + 4.dp.toPx()), Offset(w, horizon + 4.dp.toPx()), 1.2.dp.toPx())
+}
+
+private fun DrawScope.drawSphereFace(
+    headCenter: Offset,
+    rx: Float,
+    mood: Int,
+    blinking: Boolean,
+    state: MascotState,
+    isPetting: Boolean
+) {
+    val ink = Color(0xFF26221B)
+    val eyeY = headCenter.y - rx * 0.10f
+    val eyeDX = rx * 0.34f
+    val leftX = headCenter.x - eyeDX
+    val rightX = headCenter.x + eyeDX
+    val lw = rx * 0.085f
+    val effective = when {
+        isPetting -> 3
+        state == MascotState.BURNING -> 4
+        state == MascotState.HIGH_SHAME -> 2
+        state == MascotState.STUDYING -> 1
+        else -> mood
+    }
+    fun lineEye(ex: Float) {
+        drawLine(ink, Offset(ex - rx * 0.14f, eyeY), Offset(ex + rx * 0.14f, eyeY), lw, cap = StrokeCap.Round)
+    }
+    fun roundEye(ex: Float, scale: Float, pupilDy: Float) {
+        drawCircle(Color.White.copy(alpha = 0.92f), rx * 0.13f * scale, Offset(ex, eyeY))
+        drawCircle(ink, rx * 0.07f * scale, Offset(ex, eyeY + pupilDy))
+    }
+    fun happyEye(ex: Float) {
+        drawArc(
+            ink, 180f, 180f, false,
+            Offset(ex - rx * 0.14f, eyeY - rx * 0.04f),
+            Size(rx * 0.28f, rx * 0.22f),
+            Stroke(lw, cap = StrokeCap.Round)
+        )
+    }
+    when (effective) {
+        0 -> {
+            if (blinking) { lineEye(leftX); lineEye(rightX) } else { lineEye(leftX); lineEye(rightX) }
+        }
+        1 -> {
+            if (blinking) { lineEye(leftX); lineEye(rightX) } else {
+                roundEye(leftX, 1f, rx * 0.04f)
+                roundEye(rightX, 1f, rx * 0.04f)
+            }
+        }
+        2 -> {
+            drawLine(ink, Offset(leftX - rx * 0.14f, eyeY - rx * 0.07f), Offset(leftX + rx * 0.14f, eyeY + rx * 0.03f), lw, cap = StrokeCap.Round)
+            drawLine(ink, Offset(rightX + rx * 0.14f, eyeY - rx * 0.07f), Offset(rightX - rx * 0.14f, eyeY + rx * 0.03f), lw, cap = StrokeCap.Round)
+        }
+        3 -> {
+            happyEye(leftX)
+            happyEye(rightX)
+        }
+        else -> {
+            if (blinking) { lineEye(leftX); lineEye(rightX) } else {
+                roundEye(leftX, 1.25f, 0f)
+                roundEye(rightX, 1.25f, 0f)
+            }
+        }
+    }
+    val mouthY = headCenter.y + rx * 0.24f
+    when {
+        effective == 3 -> {
+            drawArc(
+                ink, 0f, 180f, true,
+                Offset(headCenter.x - rx * 0.18f, mouthY - rx * 0.08f),
+                Size(rx * 0.36f, rx * 0.22f)
+            )
+        }
+        effective == 2 -> {
+            drawArc(
+                ink, 200f, 140f, false,
+                Offset(headCenter.x - rx * 0.14f, mouthY - rx * 0.06f),
+                Size(rx * 0.28f, rx * 0.16f),
+                Stroke(lw * 0.8f, cap = StrokeCap.Round)
+            )
+        }
+        effective == 0 || effective == 4 -> {
+            drawCircle(ink, rx * 0.055f, Offset(headCenter.x, mouthY))
+        }
+        else -> {
+            drawLine(ink, Offset(headCenter.x - rx * 0.10f, mouthY), Offset(headCenter.x + rx * 0.10f, mouthY), lw * 0.8f, cap = StrokeCap.Round)
         }
     }
 }
 
 private fun DrawScope.drawModernLaptopAndPaws(
-    cx: Float, cy: Float, w: Float, h: Float,
-    isStudying: Boolean, isBurning: Boolean,
-    typingLeft: Float, typingRight: Float, headCenter: Offset
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    isStudying: Boolean,
+    isBurning: Boolean,
+    typingLeft: Float,
+    typingRight: Float,
+    headCenter: Offset
 ) {
     val deskY = cy + (h * 0.20f)
     drawRoundRect(
@@ -413,7 +713,8 @@ private fun DrawScope.drawModernLaptopAndPaws(
         drawLine(color = SuccessGreen, start = Offset(screenLeft + 3.dp.toPx(), lineY4), end = Offset(screenLeft + 8.dp.toPx(), lineY4), strokeWidth = 1.5.dp.toPx())
     } else {
         drawCircle(
-            color = PrimaryCoral, radius = 3.5.dp.toPx(),
+            color = PrimaryCoral,
+            radius = 3.5.dp.toPx(),
             center = Offset(screenLeft + (screenW / 2f), screenTop + (screenH / 2f))
         )
     }
@@ -462,24 +763,56 @@ private fun DrawScope.drawModernLaptopAndPaws(
         val activePawHit = if (typingLeft > 0) Offset(pawLeftX, pawLeftY + 2.dp.toPx()) else Offset(pawRightX, pawRightY + 2.dp.toPx())
         drawCircle(
             color = if (isBurning) FameGold else AccentCyan.copy(alpha = 0.75f),
-            radius = 3.dp.toPx(), center = activePawHit
+            radius = 3.dp.toPx(),
+            center = activePawHit
         )
     }
 }
 
 private fun DrawScope.drawFacialExpressions(
-    state: MascotState, isPetting: Boolean, isBurning: Boolean,
-    isSinging: Boolean, isFrustrated: Boolean,
-    headCenter: Offset, headRadiusX: Float, headRadiusY: Float, cx: Float
+    state: MascotState,
+    isPetting: Boolean,
+    isBurning: Boolean,
+    isSinging: Boolean,
+    isFrustrated: Boolean,
+    headCenter: Offset,
+    headRadiusX: Float,
+    headRadiusY: Float,
+    cx: Float
 ) {
     if (isBurning) {
         val sunglassW = 12.dp.toPx()
         val sunglassH = 8.dp.toPx()
-        drawRoundRect(color = Color(0xFF1E1E24), topLeft = Offset(headCenter.x - 14.dp.toPx(), headCenter.y - 4.dp.toPx()), size = Size(sunglassW, sunglassH), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx()))
-        drawLine(color = FameGold, start = Offset(headCenter.x - 12.dp.toPx(), headCenter.y - 2.dp.toPx()), end = Offset(headCenter.x - 4.dp.toPx(), headCenter.y + 2.dp.toPx()), strokeWidth = 2.dp.toPx())
-        drawRoundRect(color = Color(0xFF1E1E24), topLeft = Offset(headCenter.x + 2.dp.toPx(), headCenter.y - 4.dp.toPx()), size = Size(sunglassW, sunglassH), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx()))
-        drawLine(color = FameGold, start = Offset(headCenter.x + 4.dp.toPx(), headCenter.y - 2.dp.toPx()), end = Offset(headCenter.x + 12.dp.toPx(), headCenter.y + 2.dp.toPx()), strokeWidth = 2.dp.toPx())
-        drawLine(color = Color(0xFF1E1E24), start = Offset(headCenter.x - 2.dp.toPx(), headCenter.y - 1.dp.toPx()), end = Offset(headCenter.x + 2.dp.toPx(), headCenter.y - 1.dp.toPx()), strokeWidth = 2.dp.toPx())
+        drawRoundRect(
+            color = Color(0xFF1E1E24),
+            topLeft = Offset(headCenter.x - 14.dp.toPx(), headCenter.y - 4.dp.toPx()),
+            size = Size(sunglassW, sunglassH),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+        )
+        drawLine(
+            color = FameGold,
+            start = Offset(headCenter.x - 12.dp.toPx(), headCenter.y - 2.dp.toPx()),
+            end = Offset(headCenter.x - 4.dp.toPx(), headCenter.y + 2.dp.toPx()),
+            strokeWidth = 2.dp.toPx()
+        )
+        drawRoundRect(
+            color = Color(0xFF1E1E24),
+            topLeft = Offset(headCenter.x + 2.dp.toPx(), headCenter.y - 4.dp.toPx()),
+            size = Size(sunglassW, sunglassH),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+        )
+        drawLine(
+            color = FameGold,
+            start = Offset(headCenter.x + 4.dp.toPx(), headCenter.y - 2.dp.toPx()),
+            end = Offset(headCenter.x + 12.dp.toPx(), headCenter.y + 2.dp.toPx()),
+            strokeWidth = 2.dp.toPx()
+        )
+        drawLine(
+            color = Color(0xFF1E1E24),
+            start = Offset(headCenter.x - 2.dp.toPx(), headCenter.y - 1.dp.toPx()),
+            end = Offset(headCenter.x + 2.dp.toPx(), headCenter.y - 1.dp.toPx()),
+            strokeWidth = 2.dp.toPx()
+        )
         val grin = Path().apply {
             moveTo(headCenter.x - 7.dp.toPx(), headCenter.y + 8.dp.toPx())
             quadraticTo(headCenter.x, headCenter.y + 14.dp.toPx(), headCenter.x + 7.dp.toPx(), headCenter.y + 8.dp.toPx())
@@ -487,8 +820,24 @@ private fun DrawScope.drawFacialExpressions(
         }
         drawPath(grin, color = FameGold)
     } else if (isPetting) {
-        drawArc(color = PrimaryCoralDark, startAngle = 180f, sweepAngle = 180f, useCenter = false, topLeft = Offset(headCenter.x - 14.dp.toPx(), headCenter.y - 2.dp.toPx()), size = Size(8.dp.toPx(), 7.dp.toPx()), style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round))
-        drawArc(color = PrimaryCoralDark, startAngle = 180f, sweepAngle = 180f, useCenter = false, topLeft = Offset(headCenter.x + 6.dp.toPx(), headCenter.y - 2.dp.toPx()), size = Size(8.dp.toPx(), 7.dp.toPx()), style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round))
+        drawArc(
+            color = PrimaryCoralDark,
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(headCenter.x - 14.dp.toPx(), headCenter.y - 2.dp.toPx()),
+            size = Size(8.dp.toPx(), 7.dp.toPx()),
+            style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round)
+        )
+        drawArc(
+            color = PrimaryCoralDark,
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(headCenter.x + 6.dp.toPx(), headCenter.y - 2.dp.toPx()),
+            size = Size(8.dp.toPx(), 7.dp.toPx()),
+            style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round)
+        )
         val happyMouth = Path().apply {
             moveTo(headCenter.x - 6.dp.toPx(), headCenter.y + 7.dp.toPx())
             quadraticTo(headCenter.x, headCenter.y + 16.dp.toPx(), headCenter.x + 6.dp.toPx(), headCenter.y + 7.dp.toPx())
@@ -497,9 +846,21 @@ private fun DrawScope.drawFacialExpressions(
         drawPath(happyMouth, color = PrimaryCoral)
         drawCrown(headCenter.x, headCenter.y - headRadiusY)
     } else if (isSinging) {
-        drawArc(color = PrimaryCoralDark, startAngle = 180f, sweepAngle = 180f, useCenter = false, topLeft = Offset(headCenter.x - 13.dp.toPx(), headCenter.y - 2.dp.toPx()), size = Size(8.dp.toPx(), 6.dp.toPx()), style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round))
+        drawArc(
+            color = PrimaryCoralDark,
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(headCenter.x - 13.dp.toPx(), headCenter.y - 2.dp.toPx()),
+            size = Size(8.dp.toPx(), 6.dp.toPx()),
+            style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round)
+        )
         drawCircle(color = PrimaryCoralDark, radius = 3.dp.toPx(), center = Offset(headCenter.x + 10.dp.toPx(), headCenter.y + 1.dp.toPx()))
-        drawOval(color = PrimaryCoral, topLeft = Offset(headCenter.x - 3.5.dp.toPx(), headCenter.y + 7.dp.toPx()), size = Size(7.dp.toPx(), 8.dp.toPx()))
+        drawOval(
+            color = PrimaryCoral,
+            topLeft = Offset(headCenter.x - 3.5.dp.toPx(), headCenter.y + 7.dp.toPx()),
+            size = Size(7.dp.toPx(), 8.dp.toPx())
+        )
     } else if (isFrustrated) {
         drawLine(color = PrimaryCoralDark, start = Offset(headCenter.x - 13.dp.toPx(), headCenter.y - 1.dp.toPx()), end = Offset(headCenter.x - 7.dp.toPx(), headCenter.y + 2.dp.toPx()), strokeWidth = 2.2.dp.toPx(), cap = StrokeCap.Round)
         drawLine(color = PrimaryCoralDark, start = Offset(headCenter.x - 13.dp.toPx(), headCenter.y + 5.dp.toPx()), end = Offset(headCenter.x - 7.dp.toPx(), headCenter.y + 2.dp.toPx()), strokeWidth = 2.2.dp.toPx(), cap = StrokeCap.Round)
@@ -528,81 +889,136 @@ private fun DrawScope.drawFacialExpressions(
     }
 }
 
-private fun DrawScope.drawBurningFireAura(cx: Float, cy: Float, w: Float, h: Float, fireFlicker: Float, flameGlow: Float) {
-    val auraRadius = w * 0.46f * fireFlicker
+private fun DrawScope.drawBurningFireAura(
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    fireFlicker: Float,
+    flameGlow: Float
+) {
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(Color(0xFFFF3D00).copy(alpha = flameGlow * 0.85f), Color(0xFFFF9100).copy(alpha = flameGlow * 0.5f), Color.Transparent),
-            center = Offset(cx, cy - (h * 0.05f)),
-            radius = auraRadius
+            colors = listOf(Color(0xFFFF5722).copy(alpha = 0.55f * flameGlow), Color.Transparent),
+            center = Offset(cx, cy - (h * 0.04f)),
+            radius = w * 0.5f
         ),
-        center = Offset(cx, cy - (h * 0.05f)),
-        radius = auraRadius
+        center = Offset(cx, cy - (h * 0.04f)),
+        radius = w * 0.5f
     )
-    val flame1 = Path().apply {
-        moveTo(cx - 24.dp.toPx(), cy - (h * 0.05f))
-        quadraticTo(cx - 30.dp.toPx(), cy - (h * 0.28f) * fireFlicker, cx - 18.dp.toPx(), cy - (h * 0.35f) * fireFlicker)
-        quadraticTo(cx - 10.dp.toPx(), cy - (h * 0.22f), cx - 6.dp.toPx(), cy - (h * 0.05f))
-        close()
+    val flameOffsets = listOf(-0.30f, -0.16f, 0f, 0.16f, 0.30f)
+    flameOffsets.forEachIndexed { i, off ->
+        val flameH = (h * 0.16f + (i % 2) * 4.dp.toPx()) * fireFlicker
+        val flameW = 9.dp.toPx()
+        val baseX = cx + (w * off)
+        val baseY = cy + (h * 0.16f)
+        val flamePath = Path().apply {
+            moveTo(baseX - flameW / 2f, baseY)
+            quadraticTo(baseX - flameW / 2f, baseY - flameH * 0.55f, baseX, baseY - flameH)
+            quadraticTo(baseX + flameW / 2f, baseY - flameH * 0.55f, baseX + flameW / 2f, baseY)
+            close()
+        }
+        drawPath(
+            path = flamePath,
+            brush = Brush.verticalGradient(
+                colors = listOf(FameGold, Color(0xFFFF5722)),
+                startY = baseY - flameH,
+                endY = baseY
+            )
+        )
     }
-    drawPath(flame1, color = Color(0xFFFF5722).copy(alpha = 0.85f))
-    val flame2 = Path().apply {
-        moveTo(cx + 6.dp.toPx(), cy - (h * 0.05f))
-        quadraticTo(cx + 12.dp.toPx(), cy - (h * 0.32f) * fireFlicker, cx + 20.dp.toPx(), cy - (h * 0.38f) * fireFlicker)
-        quadraticTo(cx + 28.dp.toPx(), cy - (h * 0.24f), cx + 24.dp.toPx(), cy - (h * 0.05f))
-        close()
-    }
-    drawPath(flame2, color = Color(0xFFFF9800).copy(alpha = 0.85f))
-    val coreFlame = Path().apply {
-        moveTo(cx - 10.dp.toPx(), cy - (h * 0.08f))
-        quadraticTo(cx, cy - (h * 0.38f) * fireFlicker, cx, cy - (h * 0.42f) * fireFlicker)
-        quadraticTo(cx + 6.dp.toPx(), cy - (h * 0.28f), cx + 10.dp.toPx(), cy - (h * 0.08f))
-        close()
-    }
-    drawPath(coreFlame, color = FameGold.copy(alpha = 0.95f))
 }
 
-private fun DrawScope.drawFloatingMusicalNotes(cx: Float, cy: Float, w: Float, h: Float, phase: Float) {
-    val note1Y = (cy - (h * 0.15f)) - (phase * 40.dp.toPx())
-    val note1X = (cx - 24.dp.toPx()) + (sin(phase * Math.PI.toFloat() * 2f) * 6.dp.toPx())
-    val alpha1 = (1f - phase).coerceIn(0f, 1f)
-    drawCircle(color = FameGold.copy(alpha = alpha1), radius = 2.8.dp.toPx(), center = Offset(note1X, note1Y))
-    drawLine(color = FameGold.copy(alpha = alpha1), start = Offset(note1X + 2.5.dp.toPx(), note1Y), end = Offset(note1X + 2.5.dp.toPx(), note1Y - 8.dp.toPx()), strokeWidth = 1.8.dp.toPx(), cap = StrokeCap.Round)
-    drawLine(color = FameGold.copy(alpha = alpha1), start = Offset(note1X + 2.5.dp.toPx(), note1Y - 8.dp.toPx()), end = Offset(note1X + 6.dp.toPx(), note1Y - 6.dp.toPx()), strokeWidth = 1.8.dp.toPx(), cap = StrokeCap.Round)
-    val phase2 = (phase + 0.5f) % 1f
-    val note2Y = (cy - (h * 0.15f)) - (phase2 * 42.dp.toPx())
-    val note2X = (cx + 20.dp.toPx()) - (cos(phase2 * Math.PI.toFloat() * 2f) * 6.dp.toPx())
-    val alpha2 = (1f - phase2).coerceIn(0f, 1f)
-    drawCircle(color = AccentCyan.copy(alpha = alpha2), radius = 2.4.dp.toPx(), center = Offset(note2X, note2Y))
-    drawCircle(color = AccentCyan.copy(alpha = alpha2), radius = 2.4.dp.toPx(), center = Offset(note2X + 6.dp.toPx(), note2Y - 2.dp.toPx()))
-    drawLine(color = AccentCyan.copy(alpha = alpha2), start = Offset(note2X + 2.2.dp.toPx(), note2Y), end = Offset(note2X + 2.2.dp.toPx(), note2Y - 7.dp.toPx()), strokeWidth = 1.5.dp.toPx())
-    drawLine(color = AccentCyan.copy(alpha = alpha2), start = Offset(note2X + 8.2.dp.toPx(), note2Y - 2.dp.toPx()), end = Offset(note2X + 8.2.dp.toPx(), note2Y - 9.dp.toPx()), strokeWidth = 1.5.dp.toPx())
-    drawLine(color = AccentCyan.copy(alpha = alpha2), start = Offset(note2X + 2.2.dp.toPx(), note2Y - 7.dp.toPx()), end = Offset(note2X + 8.2.dp.toPx(), note2Y - 9.dp.toPx()), strokeWidth = 2.dp.toPx())
+private fun DrawScope.drawFloatingMusicalNotes(
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    musicNotePhase: Float
+) {
+    val noteConfigs = listOf(
+        Triple(-0.34f, 0f, Color(0xFF20B2AA)),
+        Triple(0.30f, 0.45f, FameGold),
+        Triple(-0.18f, 0.75f, Color(0xFFFF4081))
+    )
+    noteConfigs.forEach { cfg ->
+        val xOff = cfg.first
+        val phaseOff = cfg.second
+        val noteColor = cfg.third
+        val p = (musicNotePhase + phaseOff) % 1f
+        val noteX = cx + (w * xOff) + sin(p * 2f * Math.PI.toFloat()) * 3.dp.toPx()
+        val noteY = (cy - (h * 0.18f)) - (p * (h * 0.30f))
+        val alpha = 1f - p
+        drawCircle(
+            color = noteColor.copy(alpha = alpha),
+            radius = 3.dp.toPx(),
+            center = Offset(noteX, noteY)
+        )
+        drawLine(
+            color = noteColor.copy(alpha = alpha),
+            start = Offset(noteX + 3.dp.toPx(), noteY),
+            end = Offset(noteX + 3.dp.toPx(), noteY - 10.dp.toPx()),
+            strokeWidth = 1.5.dp.toPx()
+        )
+        drawLine(
+            color = noteColor.copy(alpha = alpha),
+            start = Offset(noteX + 3.dp.toPx(), noteY - 10.dp.toPx()),
+            end = Offset(noteX + 6.dp.toPx(), noteY - 8.dp.toPx()),
+            strokeWidth = 1.5.dp.toPx()
+        )
+    }
 }
 
-private fun DrawScope.drawFrustrationSteamPuffs(cx: Float, cy: Float, w: Float, h: Float, phase: Float) {
-    val steamAlpha = (1f - phase).coerceIn(0f, 0.85f)
-    val steamDist = phase * 16.dp.toPx()
-    val steamSize = (4.dp.toPx() + (phase * 6.dp.toPx()))
-    val leftX = cx - (w * 0.22f) - steamDist
-    val leftY = cy - (h * 0.12f) - (steamDist * 0.5f)
-    drawCircle(color = Color.White.copy(alpha = steamAlpha), radius = steamSize, center = Offset(leftX, leftY))
-    drawCircle(color = Color.White.copy(alpha = steamAlpha * 0.7f), radius = steamSize * 0.7f, center = Offset(leftX + 4.dp.toPx(), leftY + 2.dp.toPx()))
-    val rightX = cx + (w * 0.22f) + steamDist
-    val rightY = cy - (h * 0.12f) - (steamDist * 0.5f)
-    drawCircle(color = Color.White.copy(alpha = steamAlpha), radius = steamSize, center = Offset(rightX, rightY))
-    drawCircle(color = Color.White.copy(alpha = steamAlpha * 0.7f), radius = steamSize * 0.7f, center = Offset(rightX - 4.dp.toPx(), rightY + 2.dp.toPx()))
+private fun DrawScope.drawFrustrationSteamPuffs(
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    steamPuffPhase: Float
+) {
+    val puffConfigs = listOf(
+        Pair(-0.26f, 0f),
+        Pair(0.26f, 0.5f)
+    )
+    puffConfigs.forEach { cfg ->
+        val xOff = cfg.first
+        val phaseOff = cfg.second
+        val p = (steamPuffPhase + phaseOff) % 1f
+        val puffX = cx + (w * xOff)
+        val puffY = (cy - (h * 0.22f)) - (p * (h * 0.18f))
+        val alpha = (1f - p) * 0.8f
+        val radius = 3.dp.toPx() + (p * 3.dp.toPx())
+        drawCircle(
+            color = Color.White.copy(alpha = alpha),
+            radius = radius,
+            center = Offset(puffX, puffY)
+        )
+    }
+    drawLine(
+        color = PrimaryCoralDark,
+        start = Offset(cx - 16.dp.toPx(), cy - (h * 0.16f)),
+        end = Offset(cx - 10.dp.toPx(), cy - (h * 0.14f)),
+        strokeWidth = 2.dp.toPx(),
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color = PrimaryCoralDark,
+        start = Offset(cx + 16.dp.toPx(), cy - (h * 0.16f)),
+        end = Offset(cx + 10.dp.toPx(), cy - (h * 0.14f)),
+        strokeWidth = 2.dp.toPx(),
+        cap = StrokeCap.Round
+    )
 }
 
 private fun DrawScope.drawCrown(x: Float, y: Float) {
     val crownPath = Path().apply {
-        moveTo(x - 12.dp.toPx(), y)
-        lineTo(x - 14.dp.toPx(), y - 10.dp.toPx())
-        lineTo(x - 6.dp.toPx(), y - 4.dp.toPx())
-        lineTo(x, y - 13.dp.toPx())
-        lineTo(x + 6.dp.toPx(), y - 4.dp.toPx())
-        lineTo(x + 14.dp.toPx(), y - 10.dp.toPx())
-        lineTo(x + 12.dp.toPx(), y)
+        moveTo(x - 10.dp.toPx(), y - 2.dp.toPx())
+        lineTo(x - 10.dp.toPx(), y - 12.dp.toPx())
+        lineTo(x - 5.dp.toPx(), y - 7.dp.toPx())
+        lineTo(x, y - 14.dp.toPx())
+        lineTo(x + 5.dp.toPx(), y - 7.dp.toPx())
+        lineTo(x + 10.dp.toPx(), y - 12.dp.toPx())
+        lineTo(x + 10.dp.toPx(), y - 2.dp.toPx())
         close()
     }
     drawPath(crownPath, color = FameGold)
@@ -610,7 +1026,11 @@ private fun DrawScope.drawCrown(x: Float, y: Float) {
 
 private fun DrawScope.drawEquippedSkin(
     skin: String?,
-    cx: Float, cy: Float, w: Float, h: Float, headCenter: Offset
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    headCenter: Offset
 ) {
     when (skin) {
         "item_cyberpunk" -> {
@@ -618,32 +1038,41 @@ private fun DrawScope.drawEquippedSkin(
                 color = Color(0xFF00E5FF),
                 topLeft = Offset(headCenter.x - 16.dp.toPx(), headCenter.y - 6.dp.toPx()),
                 size = Size(32.dp.toPx(), 9.dp.toPx()),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
             )
-            drawLine(Color(0xFFFF00FF), Offset(headCenter.x - 16.dp.toPx(), headCenter.y - 6.dp.toPx()), Offset(headCenter.x - 21.dp.toPx(), headCenter.y - 13.dp.toPx()), 2.dp.toPx())
-            drawLine(Color(0xFFFF00FF), Offset(headCenter.x + 16.dp.toPx(), headCenter.y - 6.dp.toPx()), Offset(headCenter.x + 21.dp.toPx(), headCenter.y - 13.dp.toPx()), 2.dp.toPx())
-            drawCircle(Color(0xFFFF00FF), 2.5.dp.toPx(), Offset(headCenter.x - 21.dp.toPx(), headCenter.y - 13.dp.toPx()))
-            drawCircle(Color(0xFFFF00FF), 2.5.dp.toPx(), Offset(headCenter.x + 21.dp.toPx(), headCenter.y - 13.dp.toPx()))
+            drawLine(
+                color = Color(0xFF00E5FF),
+                start = Offset(headCenter.x + 12.dp.toPx(), headCenter.y - 6.dp.toPx()),
+                end = Offset(headCenter.x + 18.dp.toPx(), headCenter.y - 16.dp.toPx()),
+                strokeWidth = 2.dp.toPx()
+            )
+            drawCircle(
+                color = Color(0xFFFF4081),
+                radius = 2.5.dp.toPx(),
+                center = Offset(headCenter.x + 18.dp.toPx(), headCenter.y - 17.dp.toPx())
+            )
         }
         "item_night_owl_skin" -> {
-            val cap = Path().apply {
-                moveTo(headCenter.x - 15.dp.toPx(), headCenter.y - 12.dp.toPx())
-                quadraticTo(headCenter.x - 2.dp.toPx(), headCenter.y - 34.dp.toPx(), headCenter.x + 14.dp.toPx(), headCenter.y - 20.dp.toPx())
-                quadraticTo(headCenter.x + 22.dp.toPx(), headCenter.y - 12.dp.toPx(), headCenter.x + 26.dp.toPx(), headCenter.y - 4.dp.toPx())
+            val capPath = Path().apply {
+                moveTo(headCenter.x - 14.dp.toPx(), headCenter.y - 14.dp.toPx())
+                quadraticTo(headCenter.x, headCenter.y - 30.dp.toPx(), headCenter.x + 16.dp.toPx(), headCenter.y - 18.dp.toPx())
+                lineTo(headCenter.x + 20.dp.toPx(), headCenter.y - 10.dp.toPx())
                 close()
             }
-            drawPath(cap, Color(0xFF3F51B5))
-            drawCircle(FameGold, 3.5.dp.toPx(), Offset(headCenter.x + 26.dp.toPx(), headCenter.y - 4.dp.toPx()))
+            drawPath(capPath, color = Color(0xFF3F51B5))
+            drawCircle(
+                color = Color.White,
+                radius = 3.5.dp.toPx(),
+                center = Offset(headCenter.x + 20.dp.toPx(), headCenter.y - 9.dp.toPx())
+            )
         }
         "item_golden_desk" -> {
-            drawRoundRect(
+            drawLine(
                 color = FameGold,
-                topLeft = Offset(cx - (w * 0.38f), cy + (h * 0.20f)),
-                size = Size(w * 0.76f, 3.dp.toPx()),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                start = Offset(cx - (w * 0.38f), cy + (h * 0.20f)),
+                end = Offset(cx + (w * 0.38f), cy + (h * 0.20f)),
+                strokeWidth = 3.dp.toPx()
             )
-            drawCircle(FameGold, 4.dp.toPx(), Offset(cx - (w * 0.34f), cy + (h * 0.28f)))
-            drawCircle(FameGold, 4.dp.toPx(), Offset(cx + (w * 0.34f), cy + (h * 0.28f)))
         }
     }
 }
