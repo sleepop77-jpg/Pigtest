@@ -165,7 +165,7 @@ fun LauncherScreen(
                     }
                     Column {
                         Text(
-                            text = userProfile?.fullName ?: "Scholar",
+                            text = userProfile?.fullName?.takeIf { it.isNotBlank() } ?: "Scholar",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = Color.White
