@@ -1,6 +1,7 @@
 package com.example
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -20,11 +21,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.core.AppCore
 import com.example.core.EconomyManager
 import com.example.core.FocusTimerManager
+import com.example.core.LockdownBustedState
+import com.example.core.LockdownManager
+import com.example.core.LockdownService
+import com.example.core.NavBridge
 import com.example.core.NotificationHelper
 import com.example.core.ThemeMode
 import com.example.core.TimeBasedThemeManager
@@ -36,6 +43,8 @@ import com.example.ui.flashcards.FlashcardsScreen
 import com.example.ui.launcher.LauncherScreen
 import com.example.ui.leaderboard.LeaderboardScreen
 import com.example.ui.library.LibraryScreen
+import com.example.ui.lockdown.BustedScreen
+import com.example.ui.lockdown.LockdownScreen
 import com.example.ui.notes.NotesScreen
 import com.example.ui.onboarding.OnboardingScreen
 import com.example.ui.pomodoro.PomodoroScreen
@@ -46,6 +55,7 @@ import com.example.ui.studygroups.StudyGroupsScreen
 import com.example.ui.studystocks.StockMarketScreen
 import com.example.ui.taskgoals.TasksGoalsScreen
 import com.example.ui.theme.StudyOSTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private lateinit var database: AppDatabase
@@ -64,6 +74,18 @@ class MainActivity : ComponentActivity() {
         themeManager = TimeBasedThemeManager()
         economyManager = EconomyManager(applicationContext, repository, themeManager)
         timerManager = FocusTimerManager(applicationContext, repository, economyManager)
+        AppCore.repository = repository
+        intent.getStringExtra("studyos_route")?.let { NavBridge.routeFlow.value = it }
+        lifecycleScope.launch {
+            economyManager.isStudyingNow.collect { running ->
+                val serviceIntent = Intent(this@MainActivity, LockdownService::class.java)
+                if (running && LockdownManager.isEnabled(this@MainActivity) && LockdownManager.hasUsageAccess(this@MainActivity)) {
+                    startForegroundService(serviceIntent)
+                } else {
+                    stopService(serviceIntent)
+                }
+            }
+        }
         setContent {
             val themeMode by themeManager.themeMode.collectAsState()
             val isDarkTheme = when (themeMode) {
@@ -103,6 +125,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra("studyos_route")?.let { NavBridge.routeFlow.value = it }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         economyManager.cleanup()
@@ -120,6 +147,20 @@ fun StudyOSApp(
     startOnboarding: Boolean
 ) {
     val navController = rememberNavController()
+    val bustedPending by LockdownBustedState.pendingFlow.collectAsState()
+    val pendingRoute by NavBridge.routeFlow.collectAsState()
+    LaunchedEffect(bustedPending) {
+        if (bustedPending) {
+            LockdownBustedState.pendingFlow.value = false
+            navController.navigate("busted")
+        }
+    }
+    LaunchedEffect(pendingRoute) {
+        if (pendingRoute != null) {
+            NavBridge.routeFlow.value = null
+            navController.navigate(pendingRoute)
+        }
+    }
     val startDestination = if (startOnboarding) "onboarding" else "launcher"
     NavHost(
         navController = navController,
@@ -146,6 +187,12 @@ fun StudyOSApp(
         }
         composable("library") {
             LibraryScreen(repository = repository, economyManager = economyManager, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
+        }
+        composable("lockdown") {
+            LockdownScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable("busted") {
+            BustedScreen(onReturn = { navController.popBackStack() })
         }
         composable("profile") {
             ProfileScreen(repository = repository, themeManager = themeManager, economyManager = economyManager, onNavigateBack = { navController.popBackStack() }, onNavigateToOnboarding = { navController.navigate("onboarding") })
