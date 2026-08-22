@@ -1,7 +1,11 @@
 package com.example.ui.library
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -10,6 +14,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +25,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -49,6 +55,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -80,6 +88,8 @@ import com.example.ui.theme.WarningRed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.sin
 
@@ -148,6 +158,60 @@ enum class LibraryScene(val label: String) {
     FIRE("Fire")
 }
 
+data class StickyNote(val id: Long, val text: String, val color: Long)
+data class PdfItem(val name: String, val uri: String)
+
+object LibraryStore {
+    private const val PREFS = "studyos_library"
+
+    fun loadNotes(ctx: Context): List<StickyNote> {
+        val raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("notes", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                StickyNote(o.getLong("id"), o.getString("text"), o.getLong("color"))
+            }
+        } catch (_: Exception) { emptyList() }
+    }
+
+    fun saveNotes(ctx: Context, notes: List<StickyNote>) {
+        val arr = JSONArray()
+        notes.forEach { n ->
+            arr.put(JSONObject().put("id", n.id).put("text", n.text).put("color", n.color))
+        }
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("notes", arr.toString()).apply()
+    }
+
+    fun loadPdfs(ctx: Context): List<PdfItem> {
+        val raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("pdfs", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                PdfItem(o.getString("name"), o.getString("uri"))
+            }
+        } catch (_: Exception) { emptyList() }
+    }
+
+    fun savePdfs(ctx: Context, pdfs: List<PdfItem>) {
+        val arr = JSONArray()
+        pdfs.forEach { p ->
+            arr.put(JSONObject().put("name", p.name).put("uri", p.uri))
+        }
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("pdfs", arr.toString()).apply()
+    }
+}
+
+private fun queryDisplayName(ctx: Context, uri: Uri): String? {
+    return try {
+        ctx.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+        }
+    } catch (_: Exception) { null }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
@@ -173,7 +237,7 @@ fun LibraryScreen(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    title = { Text("The Library", color = Color.White, fontWeight = FontWeight.Bold) },
+                    title = { Text("The Library", color = Color.White, fontWeight = FontWeight.Black) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(StudyIcons.Back, contentDescription = "Back", tint = Color.White)
@@ -189,122 +253,132 @@ fun LibraryScreen(
                     .background(backgroundBrush)
                     .padding(innerPadding)
             ) {
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    item {
-                        Text(
-                            text = "Choose your study room",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
-                    item {
-                        Card(
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = SurfaceCream),
-                            modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .background(FameGold, RoundedCornerShape(16.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Column(modifier = Modifier.padding(18.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Icon(LibraryIcons.Library, contentDescription = null, tint = PrimaryCoralDark, modifier = Modifier.size(26.dp))
-                                    Text("Alone Library", color = OnSurfaceDark, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Total isolation. Just you, the app, and the work. Leaving the app mid-session costs +5 Shame.",
-                                    color = OnSurfaceDark.copy(alpha = 0.75f),
-                                    fontSize = 12.sp
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf(25, 50, 90).forEach { m ->
-                                        Button(
-                                            onClick = { minutes = m },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (minutes == m) PrimaryCoral else Color(0xFFE8E0DC)
-                                            ),
-                                            shape = RoundedCornerShape(12.dp)
-                                        ) {
-                                            Text("$m m", color = if (minutes == m) Color.White else OnSurfaceDark, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                        }
+                            Icon(LibraryIcons.Library, contentDescription = null, tint = Color(0xFF2B0503), modifier = Modifier.size(28.dp))
+                        }
+                        Column {
+                            Text("THE LIBRARY", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp, letterSpacing = 2.sp)
+                            Text("Your quiet place. Sealed phones only.", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                    }
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceCream),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .background(Brush.horizontalGradient(listOf(PrimaryCoral, FameGold)), RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Alone Library", color = OnSurfaceDark, fontWeight = FontWeight.Black, fontSize = 17.sp)
+                            Text(
+                                "Total isolation with your sticky notes and PDFs on the desk. Leaving mid-session costs +5 Shame, except when shelving a PDF.",
+                                color = OnSurfaceDark.copy(alpha = 0.75f),
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(25, 50, 90).forEach { m ->
+                                    Button(
+                                        onClick = { minutes = m },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (minutes == m) PrimaryCoral else Color(0xFFE8E0DC)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text("$m m", color = if (minutes == m) Color.White else OnSurfaceDark, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    LibraryScene.values().forEach { s ->
-                                        Button(
-                                            onClick = { scene = s },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (scene == s) PrimaryCoralDark else Color(0xFFE8E0DC)
-                                            ),
-                                            shape = RoundedCornerShape(12.dp)
-                                        ) {
-                                            Text(s.label, color = if (scene == s) Color.White else OnSurfaceDark, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        }
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                LibraryScene.values().forEach { s ->
+                                    Button(
+                                        onClick = { scene = s },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (scene == s) PrimaryCoralDark else Color(0xFFE8E0DC)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text(s.label, color = if (scene == s) Color.White else OnSurfaceDark, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(14.dp))
-                                Button(
-                                    onClick = { view = "alone" },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryCoral),
-                                    shape = RoundedCornerShape(14.dp),
-                                    modifier = Modifier.fillMaxWidth().height(46.dp)
-                                ) {
-                                    Text("Enter Alone Library", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                                }
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = { view = "alone" },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryCoral),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth().height(46.dp)
+                            ) {
+                                Text("Enter Alone Library", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
                             }
                         }
                     }
-                    item {
-                        Card(
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = SurfaceCream),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(18.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Icon(LibraryIcons.Video, contentDescription = null, tint = PrimaryCoralDark, modifier = Modifier.size(26.dp))
-                                    Text("Group Library", color = OnSurfaceDark, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Study alongside real people. Create a room, share the Zoom link, and suffer through finals together.",
-                                    color = OnSurfaceDark.copy(alpha = 0.75f),
-                                    fontSize = 12.sp
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-                                Button(
-                                    onClick = { showCreateRoom = true },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryCoralDark),
-                                    shape = RoundedCornerShape(14.dp),
-                                    modifier = Modifier.fillMaxWidth().height(46.dp)
-                                ) {
-                                    Text("Create a Room", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                                }
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceCream),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .background(Brush.horizontalGradient(listOf(FameGold, PrimaryCoral)), RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Group Library", color = OnSurfaceDark, fontWeight = FontWeight.Black, fontSize = 17.sp)
+                            Text(
+                                "Study alongside real people. Create a room, share the Zoom link, and suffer through finals together.",
+                                color = OnSurfaceDark.copy(alpha = 0.75f),
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = { showCreateRoom = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryCoralDark),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth().height(46.dp)
+                            ) {
+                                Text("Create a Room", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
                             }
                         }
                     }
                     if (rooms.isNotEmpty()) {
-                        item {
-                            Text("Open rooms", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                        items(rooms, key = { it.id }) { room ->
+                        Text("Open rooms", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        rooms.forEach { room ->
                             RoomCard(room = room)
                         }
                     }
-                    item {
-                        Text(
-                            text = "Live shared rooms arrive with the backend. For now, send your Zoom link to friends and join together.",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(vertical = 24.dp)
-                        )
-                    }
+                    Text(
+                        text = "Live shared rooms arrive with the backend. For now, send your Zoom link to friends and join together.",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
                 }
             }
         }
@@ -403,6 +477,7 @@ private fun AloneLibrarySession(
     scene: LibraryScene,
     onExit: () -> Unit
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var secondsLeft by remember { mutableIntStateOf(minutes * 60) }
     var distractions by remember { mutableIntStateOf(0) }
@@ -410,6 +485,24 @@ private fun AloneLibrarySession(
     var showExitDialog by remember { mutableStateOf(false) }
     var finished by remember { mutableStateOf(false) }
     var leftApp by remember { mutableStateOf(false) }
+    var excused by remember { mutableStateOf(false) }
+    var notes by remember { mutableStateOf(LibraryStore.loadNotes(context)) }
+    var pdfs by remember { mutableStateOf(LibraryStore.loadPdfs(context)) }
+    var showAddNote by remember { mutableStateOf(false) }
+    var viewNote by remember { mutableStateOf<StickyNote?>(null) }
+
+    val pdfPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: Exception) { }
+            val name = queryDisplayName(context, uri) ?: "PDF"
+            pdfs = pdfs + PdfItem(name, uri.toString())
+            LibraryStore.savePdfs(context, pdfs)
+        }
+        excused = false
+    }
+
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
@@ -419,8 +512,12 @@ private fun AloneLibrarySession(
             if (event == Lifecycle.Event.ON_START && leftApp) {
                 leftApp = false
                 if (!finished) {
-                    distractions++
-                    showLeftDialog = true
+                    if (excused) {
+                        excused = false
+                    } else {
+                        distractions++
+                        showLeftDialog = true
+                    }
                 }
             }
         }
@@ -463,35 +560,35 @@ private fun AloneLibrarySession(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.2f)
-                .padding(top = 40.dp),
+                .weight(0.16f)
+                .padding(top = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = if (finished) "Session complete" else "ALONE LIBRARY",
                 color = FameGold,
                 fontWeight = FontWeight.Black,
-                fontSize = 15.sp,
+                fontSize = 14.sp,
                 letterSpacing = 2.sp
             )
             Text(
                 text = String.format("%02d:%02d", secondsLeft / 60, secondsLeft % 60),
                 color = Color.White,
                 fontWeight = FontWeight.Black,
-                fontSize = 52.sp
+                fontSize = 44.sp
             )
             Text(
                 text = "Distractions: $distractions",
                 color = if (distractions > 0) WarningRed else Color.White.copy(alpha = 0.6f),
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
         }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.55f)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .weight(0.62f)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
@@ -501,9 +598,9 @@ private fun AloneLibrarySession(
                     size = size
                 )
                 val winW = w * 0.35f
-                val winH = h * 0.45f
-                val winX = w * 0.08f
-                val winY = h * 0.05f
+                val winH = h * 0.40f
+                val winX = w * 0.06f
+                val winY = h * 0.04f
                 drawRoundRect(
                     color = Color(0xFF3B2A24),
                     topLeft = Offset(winX - 4.dp.toPx(), winY - 4.dp.toPx()),
@@ -540,70 +637,163 @@ private fun AloneLibrarySession(
                     drawCircle(
                         brush = Brush.radialGradient(
                             listOf(Color(0xFFFF7043).copy(alpha = glow), Color.Transparent),
-                            center = Offset(w * 0.78f, h * 0.25f),
+                            center = Offset(w * 0.78f, h * 0.22f),
                             radius = w * 0.22f
                         ),
-                        center = Offset(w * 0.78f, h * 0.25f),
+                        center = Offset(w * 0.78f, h * 0.22f),
                         radius = w * 0.22f
                     )
                     for (i in 0 until 3) {
                         val fx = w * 0.74f + i * 12.dp.toPx()
                         val fh = (14 + i * 5).dp.toPx() * (0.8f + 0.3f * abs(sin(phase * 6.28f + i)))
                         val p = Path().apply {
-                            moveTo(fx - 6.dp.toPx(), h * 0.35f)
-                            quadraticTo(fx, h * 0.35f - fh, fx + 6.dp.toPx(), h * 0.35f)
+                            moveTo(fx - 6.dp.toPx(), h * 0.32f)
+                            quadraticTo(fx, h * 0.32f - fh, fx + 6.dp.toPx(), h * 0.32f)
                             close()
                         }
                         drawPath(p, Color(0xFFFF9100).copy(alpha = 0.8f))
                     }
                 }
-                val deskY = h * 0.65f
+                val deskY = h * 0.78f
                 drawRoundRect(
                     color = Color(0xFF4A2B2B),
-                    topLeft = Offset(w * 0.10f, deskY),
-                    size = Size(w * 0.80f, h * 0.04f),
+                    topLeft = Offset(w * 0.06f, deskY),
+                    size = Size(w * 0.88f, h * 0.04f),
                     cornerRadius = CornerRadius(8.dp.toPx())
                 )
-                val lampX = w * 0.75f
+                val lampX = w * 0.86f
                 drawLine(Color(0xFF223047), Offset(lampX, deskY), Offset(lampX, deskY - h * 0.10f), 3.dp.toPx())
-                drawCircle(Color(0xFF223047), 7.dp.toPx(), Offset(lampX, deskY - h * 0.10f))
+                drawCircle(Color(0xFF223047), 6.dp.toPx(), Offset(lampX, deskY - h * 0.10f))
                 drawCircle(
                     brush = Brush.radialGradient(
                         listOf(FameGold.copy(alpha = 0.5f), Color.Transparent),
                         center = Offset(lampX, deskY - h * 0.08f),
-                        radius = w * 0.18f
+                        radius = w * 0.16f
                     ),
                     center = Offset(lampX, deskY - h * 0.08f),
-                    radius = w * 0.18f
+                    radius = w * 0.16f
                 )
-                for (i in 0 until 3) {
-                    drawRoundRect(
-                        color = listOf(Color(0xFFD9534F), Color(0xFF20B2AA), Color(0xFFF5A623))[i],
-                        topLeft = Offset(w * 0.15f + i * 5.dp.toPx(), deskY - 6.dp.toPx() - i * 6.dp.toPx()),
-                        size = Size(w * 0.12f, 5.dp.toPx()),
-                        cornerRadius = CornerRadius(2.dp.toPx())
-                    )
-                }
                 for (i in 0 until 6) {
                     val dx = (w / 6f) * i + 10.dp.toPx()
-                    val dy = h * 0.45f + sin(phase * 6.28f + i * 2.1f) * 8.dp.toPx()
+                    val dy = h * 0.55f + sin(phase * 6.28f + i * 2.1f) * 8.dp.toPx()
                     drawCircle(Color.White.copy(alpha = 0.10f), 1.5.dp.toPx(), Offset(dx, dy))
                 }
             }
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 20.dp),
+                    .padding(bottom = 46.dp),
                 contentAlignment = Alignment.Center
             ) {
-                InteractiveMascot(state = MascotState.STUDYING, size = 140.dp, showArc = false)
+                InteractiveMascot(state = MascotState.STUDYING, size = 120.dp, showArc = false)
+            }
+            LazyRow(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 4.dp, start = 8.dp, end = 56.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(notes, key = { it.id }) { note ->
+                    Box(
+                        modifier = Modifier
+                            .size(88.dp)
+                            .rotate(if (note.id % 2 == 0L) -2.5f else 2.5f)
+                            .shadow(6.dp, RoundedCornerShape(6.dp))
+                            .background(Color(note.color), RoundedCornerShape(6.dp))
+                            .clickable { viewNote = note }
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            note.text,
+                            color = Color(0xFF3E2723),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .shadow(6.dp, RoundedCornerShape(22.dp))
+                        .background(FameGold, RoundedCornerShape(22.dp))
+                        .clickable { showAddNote = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("+", color = Color(0xFF2B0503), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                }
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .shadow(6.dp, RoundedCornerShape(22.dp))
+                        .background(Color(0xFF20B2AA), RoundedCornerShape(22.dp))
+                        .clickable {
+                            excused = true
+                            pdfPicker.launch(arrayOf("application/pdf"))
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("+", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                }
+            }
+            LazyRow(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 10.dp, end = 60.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(pdfs, key = { it.uri }) { pdf ->
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0xFF3B2A24), RoundedCornerShape(10.dp))
+                            .clickable {
+                                excused = true
+                                try {
+                                    val uri = Uri.parse(pdf.uri)
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(uri, "application/pdf")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                    )
+                                } catch (_: Exception) { excused = false }
+                            }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("PDF", color = Color(0xFF9EC9FF), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        Text(
+                            pdf.name.take(14),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "x",
+                            color = WarningRed,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.clickable {
+                                pdfs = pdfs.filterNot { it.uri == pdf.uri }
+                                LibraryStore.savePdfs(context, pdfs)
+                            }
+                        )
+                    }
+                }
             }
         }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.25f)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .weight(0.22f)
+                .padding(horizontal = 24.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -631,6 +821,73 @@ private fun AloneLibrarySession(
                 )
             }
         }
+    }
+    if (showAddNote) {
+        var noteText by remember { mutableStateOf("") }
+        var noteColor by remember { mutableStateOf(0xFFFFF9C4L) }
+        AlertDialog(
+            onDismissRequest = { showAddNote = false },
+            title = { Text("Pin a sticky note", fontWeight = FontWeight.Black) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it },
+                        label = { Text("Note") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        listOf(0xFFFFF9C4L, 0xFFF8BBD0L, 0xFFC8E6C9L, 0xFFBBDEFBL).forEach { c ->
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .background(Color(c), RoundedCornerShape(6.dp))
+                                    .clickable { noteColor = c }
+                            ) {
+                                if (noteColor == c) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .size(12.dp)
+                                            .background(Color(0xFF3E2723), RoundedCornerShape(3.dp))
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (noteText.isNotBlank()) {
+                            notes = notes + StickyNote(System.currentTimeMillis(), noteText.take(60), noteColor)
+                            LibraryStore.saveNotes(context, notes)
+                            showAddNote = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryCoral)
+                ) { Text("Pin it") }
+            },
+            dismissButton = { TextButton(onClick = { showAddNote = false }) { Text("Cancel") } }
+        )
+    }
+    viewNote?.let { note ->
+        AlertDialog(
+            onDismissRequest = { viewNote = null },
+            title = { Text("Sticky note", fontWeight = FontWeight.Black) },
+            text = { Text(note.text) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        notes = notes.filterNot { it.id == note.id }
+                        LibraryStore.saveNotes(context, notes)
+                        viewNote = null
+                    }
+                ) { Text("Tear it off", color = WarningRed, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { viewNote = null }) { Text("Keep it") } }
+        )
     }
     if (showLeftDialog) {
         AlertDialog(
