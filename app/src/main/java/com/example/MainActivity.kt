@@ -35,6 +35,7 @@ import com.example.ui.analytics.AnalyticsScreen
 import com.example.ui.flashcards.FlashcardsScreen
 import com.example.ui.launcher.LauncherScreen
 import com.example.ui.leaderboard.LeaderboardScreen
+import com.example.ui.library.LibraryScreen
 import com.example.ui.notes.NotesScreen
 import com.example.ui.onboarding.OnboardingScreen
 import com.example.ui.pomodoro.PomodoroScreen
@@ -142,6 +143,9 @@ fun StudyOSApp(
         }
         composable("launcher") {
             LauncherScreen(repository = repository, economyManager = economyManager, themeManager = themeManager, onNavigateToRoute = { route -> navController.navigate(route) })
+        }
+        composable("library") {
+            LibraryScreen(repository = repository, economyManager = economyManager, themeManager = themeManager, onNavigateBack = { navController.popBackStack() })
         }
         composable("profile") {
             ProfileScreen(repository = repository, themeManager = themeManager, economyManager = economyManager, onNavigateBack = { navController.popBackStack() }, onNavigateToOnboarding = { navController.navigate("onboarding") })
