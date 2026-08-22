@@ -77,6 +77,14 @@ class MainActivity : ComponentActivity() {
         AppCore.repository = repository
         intent.getStringExtra("studyos_route")?.let { NavBridge.routeFlow.value = it }
         lifecycleScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(800L)
+                com.example.core.WidgetBridge.frame.value = (com.example.core.WidgetBridge.frame.value + 1) % 4
+                com.example.core.WidgetBridge.streak.value = economyManager.currentStreakDays.value
+                com.example.widgets.StudyWidgets.refreshAnimated(this@MainActivity)
+            }
+        }
+        lifecycleScope.launch {
             economyManager.isStudyingNow.collect { running ->
                 val serviceIntent = Intent(this@MainActivity, LockdownService::class.java)
                 if (running && LockdownManager.isEnabled(this@MainActivity) && LockdownManager.hasUsageAccess(this@MainActivity)) {
