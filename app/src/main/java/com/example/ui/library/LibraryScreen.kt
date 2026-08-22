@@ -1,10 +1,10 @@
 package com.example.ui.library
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -87,7 +87,10 @@ object LibraryIcons {
     val Library: ImageVector by lazy {
         ImageVector.Builder(
             name = "Library",
-            defaultViewportSize = Size(24f, 24f)
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
         ).apply {
             path(fill = SolidColor(Color.Black)) {
                 moveTo(12f, 5f)
@@ -104,7 +107,10 @@ object LibraryIcons {
     val Video: ImageVector by lazy {
         ImageVector.Builder(
             name = "Video",
-            defaultViewportSize = Size(24f, 24f)
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
         ).apply {
             path(fill = SolidColor(Color.Black)) {
                 moveTo(3f, 7f)
