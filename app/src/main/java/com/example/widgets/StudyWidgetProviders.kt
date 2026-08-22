@@ -69,7 +69,7 @@ class TickerWidgetProvider : AppWidgetProvider() {
             val (w, h) = StudyWidgets.size(ctx, 300, 150)
             val data = try {
                 runBlocking { AppDatabase.getDatabase(ctx).stockDao().getAllStocks().first() }
-                    .take(2).map { it.symbol to it.weeklyChangePercent }
+                    .take(2).map { it.symbol to it.changePercent }
             } catch (_: Exception) { listOf("\$MATH" to 2.4f, "\$CS" to -1.2f) }
             val bmp = WidgetArt.renderTicker(ctx, w, h, data)
             StudyWidgets.set(ctx, mgr, id, bmp, "stocks")
