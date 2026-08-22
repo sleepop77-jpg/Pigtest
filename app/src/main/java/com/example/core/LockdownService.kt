@@ -67,9 +67,9 @@ class LockdownService : Service() {
         escapes++
         val penalty = 3 + escapes * 2
         scope.launch {
-            if (AppCore::repository.isInitialized) {
+            try {
                 AppCore.repository.addShame(penalty, "Lockdown breach: opened a blocked app")
-            }
+            } catch (_: UninitializedPropertyAccessException) { }
         }
         val name = try {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
