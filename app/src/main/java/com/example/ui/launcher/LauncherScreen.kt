@@ -78,7 +78,8 @@ fun LauncherScreen(
             AppGridItem("Leaderboard", StudyIcons.Leaderboard, Color(0xFF78909C), "Tiers", Color(0xFF455A64), "leaderboard"),
             AppGridItem("Study Squad", StudyIcons.StudyGroups, Color(0xFF3F51B5), "${studyGroups.size}", Color(0xFF283593), "groups"),
             AppGridItem("Profile", StudyIcons.Person, Color(0xFFE91E63), "VIP", Color(0xFFC2185B), "profile"),
-            AppGridItem("Settings", StudyIcons.Settings, Color(0xFF757575), null, Color.Gray, "settings")
+            AppGridItem("Library", com.example.ui.library.LibraryIcons.Library, Color(0xFF8D6E63), "Quiet", Color(0xFF5D4037), "library"),
+AppGridItem("Settings", StudyIcons.Settings, Color(0xFF757575), null, Color.Gray, "settings")
         )
     }
     val currentPhase = themeManager.getCurrentPhase()
@@ -414,7 +415,7 @@ fun LauncherScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    appGridItems.drop(8).take(3).forEach { item ->
+                    appGridItems.drop(8).take(4).forEach { item ->
                         AppIcon(
                             title = item.title,
                             icon = item.icon,
@@ -424,7 +425,7 @@ fun LauncherScreen(
                             onClick = { onNavigateToRoute(item.route) }
                         )
                     }
-                    Spacer(modifier = Modifier.width(68.dp))
+                    
                 }
             }
         }
