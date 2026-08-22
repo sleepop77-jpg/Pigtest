@@ -166,7 +166,7 @@ object WidgetArt {
             c.drawLine(cx + cos(a) * r * 0.78f, cy + sin(a) * r * 0.78f, cx + cos(a) * r * 0.9f, cy + sin(a) * r * 0.9f, tick)
         }
         for (i in 0 until 14) {
-            val a = (i * 25.7f + frame * 9f) * PI / 180
+            val a = (i * 25.7f + frame * 9f) * PI.toFloat() / 180
             val fx = cx + cos(a) * r
             val fy = cy + sin(a) * r
             flame(c, fx, fy, dp(ctx, 5f + ((i + frame) % 3) * 2f), (i + frame) % 4)
