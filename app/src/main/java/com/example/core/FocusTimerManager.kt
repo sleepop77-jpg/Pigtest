@@ -50,6 +50,10 @@ class FocusTimerManager(
                 delay(1000L)
                 if (_isRunning.value) {
                     economyManager.startStudySession(_selectedSubject.value)
+                    com.example.core.WidgetBridge.running.value = true
+                    com.example.core.WidgetBridge.seconds.value = _secondsRemaining.value
+                    com.example.widgets.FocusWidgetProvider.refreshAll(context)
+                    com.example.widgets.StatsWidgetProvider.refreshAll(context)
                     val currentSecs = _secondsRemaining.value
                     if (currentSecs > 1) {
                         _secondsRemaining.value = currentSecs - 1
@@ -111,11 +115,12 @@ class FocusTimerManager(
         economyManager.startStudySession(_selectedSubject.value)
     }
 
-    fun pause() {
+fun pause() {
         _isRunning.value = false
         economyManager.stopStudySession()
+        com.example.core.WidgetBridge.running.value = false
+        com.example.widgets.FocusWidgetProvider.refreshAll(context)
     }
-
     fun toggle() {
         if (_isRunning.value) pause() else start()
     }
