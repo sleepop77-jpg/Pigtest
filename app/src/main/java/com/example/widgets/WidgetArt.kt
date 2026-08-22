@@ -162,7 +162,7 @@ object WidgetArt {
         val cx = w / 2f; val cy = h / 2f; val r = min(w, h) * 0.30f
         val tick = Paint().apply { isAntiAlias = true; color = Color.argb(120, 255, 224, 130); strokeWidth = dp(ctx, 2f) }
         for (i in 0 until 12) {
-            val a = i * 30f * PI / 180
+            val a = i * 30f * PI.toFloat() / 180
             c.drawLine(cx + cos(a) * r * 0.78f, cy + sin(a) * r * 0.78f, cx + cos(a) * r * 0.9f, cy + sin(a) * r * 0.9f, tick)
         }
         for (i in 0 until 14) {
