@@ -156,9 +156,10 @@ fun StudyOSApp(
         }
     }
     LaunchedEffect(pendingRoute) {
-        if (pendingRoute != null) {
+        val route = pendingRoute
+        if (route != null) {
             NavBridge.routeFlow.value = null
-            navController.navigate(pendingRoute)
+            navController.navigate(route)
         }
     }
     val startDestination = if (startOnboarding) "onboarding" else "launcher"
